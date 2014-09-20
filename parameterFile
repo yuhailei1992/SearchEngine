@@ -1,0 +1,4 @@
+indexPath=/Users/Caesar/Downloads/11642/hw1/index
+retrievalAlgorithm=RankedBoolean
+queryFilePath=queriesStructured.txt
+trecEvalOutputPath=HW1-queries-UB.teIn
