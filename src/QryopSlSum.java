@@ -1,19 +1,19 @@
 /**
- *  This class implements the OR operator for all retrieval models.
+ *  This class implements the SUM operator for BM25 model.
  *
  *  Copyright (c) 2014, Carnegie Mellon University.  All Rights Reserved.
  */
 
 import java.io.*;
 
-public class QryopSlOr extends QryopSl {
+public class QryopSlSum extends QryopSl {
 
     /**
      *  It is convenient for the constructor to accept a variable number
-     *  of arguments. Thus new qryopOr (arg1, arg2, arg3, ...).
+     *  of arguments. Thus new qryopSum (arg1, arg2, arg3, ...).
      *  @param q A query argument (a query operator).
      */
-    public QryopSlOr(Qryop... q) {
+    public QryopSlSum(Qryop... q) {
         for (int i = 0; i < q.length; i++)
             this.args.add(q[i]);
     }
@@ -59,14 +59,12 @@ public class QryopSlOr extends QryopSl {
             ptr[i] = this.daatPtrs.get(i);
             ptr[i].nextDoc = 0;
         }
-        System.out.println(num_of_lists);
+        ///System.out.println(num_of_lists);
         for (int i = 0; i < num_of_lists; ++i) {//todo: haileiy
         	//System.out.println(ptr[i].scoreList.scores.size());
         }
         
         int curr_min_docid = -1;//stores the current minimum docid
-        double docScore = 1.0;//for unranked boolean, default score is 1.0
-
         EVALUATEDOCUMENTS:
         while (true) {
             int num_finishedlists = 0;//count the number of depleted lists
@@ -110,34 +108,23 @@ public class QryopSlOr extends QryopSl {
             }
 
             //duplicate entry. Need to find the one with the max score
-            //
             //The docids are inserted into the result in order.
             //So, if the temp_min_docid is equal to curr_min_docid, we know that
             //there are duplicates.
             if (temp_min_docid == curr_min_docid) {
                 double curr_score = ptr[temp_min_docid_pos].scoreList.
-                                    getDocidScore(ptr[temp_min_docid_pos].nextDoc);
-                double prev_score = result.docScores.getLast().score;
-                if (curr_score > prev_score) {
-                    // replace the last entry with one that has same docid and
-                    // smaller score.
-                    result.docScores.removeLast();
-                    result.docScores.add(temp_min_docid, curr_score);
-                }
+                                    getDocidScore(ptr[temp_min_docid_pos].nextDoc) + result.docScores.getLast().score;
+                result.docScores.removeLast();
+                result.docScores.add(temp_min_docid, curr_score);
                 ptr[temp_min_docid_pos].nextDoc++;
             }
 
             // if temp_min_docid is greater than curr_min_docid, insert it to
             // the result.
             if (temp_min_docid > curr_min_docid) {
-                if (r instanceof RetrievalModelUnrankedBoolean) {
-                    result.docScores.add (temp_min_docid, docScore);
-                }
-                else if (r instanceof RetrievalModelRankedBoolean) {
-                    double toInsert = ptr[temp_min_docid_pos].scoreList.
-                                      getDocidScore(ptr[temp_min_docid_pos].nextDoc);
-                    result.docScores.add(temp_min_docid, toInsert);
-                }
+                double toInsert = ptr[temp_min_docid_pos].scoreList.
+                                  getDocidScore(ptr[temp_min_docid_pos].nextDoc);
+                result.docScores.add(temp_min_docid, toInsert);
                 ptr[temp_min_docid_pos].nextDoc++;
                 curr_min_docid = temp_min_docid;
             }
@@ -156,7 +143,7 @@ public class QryopSlOr extends QryopSl {
      */
     public double getDefaultScore (RetrievalModel r, long docid) throws IOException {
 
-        if (r instanceof RetrievalModelUnrankedBoolean)
+        if (r instanceof RetrievalModelBM25)
             return (0.0);
 
         return 0.0;
@@ -173,6 +160,6 @@ public class QryopSlOr extends QryopSl {
         for (int i=0; i<this.args.size(); i++)
             result += this.args.get(i).toString() + " ";
 
-        return ("#OR( " + result + ")");
+        return ("#sum( " + result + ")");
     }
 }

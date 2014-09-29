@@ -1,10 +1,1 @@
-10:#OR(#AND(cheap internet) #NEAR/50(cheap internet))
-12:#OR(djs.title djs.url djs.inlink djs.keywords djs.body)
-26:#OR(#AND(lower #NEAR/1(heart rate)) #NEAR/3(lower heart rate))
-29:#OR(#AND(#NEAR/3(ps 2) games) ps.title)
-33:#OR(#NEAR/2(elliptical trainer) #AND(elliptical.title trainer.title))
-52:#OR(avp.title avp.keywords avp.body avp.url avp.inlink)
-71:#OR(#NEAR/4(living india) #AND(living india.title))
-102:#NEAR/1(fickle creek farm)
-149:#AND(uplift #AND(yellowstone #AND(national park))) 
-190:#OR(#NEAR/1(brooks brothers) clearance)
+190:brooks.title brothers.title clearance

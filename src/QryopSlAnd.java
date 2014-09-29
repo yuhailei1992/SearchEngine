@@ -5,7 +5,6 @@
  */
 
 import java.io.*;
-import java.util.*;
 
 public class QryopSlAnd extends QryopSl {
 
@@ -38,7 +37,8 @@ public class QryopSlAnd extends QryopSl {
      *  @throws IOException
      */
     public QryResult evaluate(RetrievalModel r) throws IOException {
-        return (evaluateBoolean (r));
+    	if (r instanceof RetrievalModelIndri) return (evaluateIndri(r));
+    	else return (evaluateBoolean (r));
     }
 
     /**
@@ -48,6 +48,82 @@ public class QryopSlAnd extends QryopSl {
      *  @return The result of evaluating the query.
      *  @throws IOException
      */
+    public QryResult evaluateIndri (RetrievalModel r) throws IOException {
+    	
+    	allocDaaTPtrs (r);
+        QryResult result = new QryResult ();
+    	int num_of_lists = this.daatPtrs.size();
+        //initialize an array of DaaTPtr objects.
+        DaaTPtr ptr[] = new DaaTPtr[num_of_lists];
+        for (int i = 0; i < num_of_lists; ++i) {
+            ptr[i] = this.daatPtrs.get(i);
+            ptr[i].nextDoc = 0;
+        }
+        //System.out.println(num_of_lists);
+
+        EVALUATEDOCUMENTS:
+        while (true) {
+            int num_finishedlists = 0;//count the number of depleted lists
+            int temp_min_docid = -1;//stores the min docid in one loop
+            //initialize the temp_min_docid. Since the pointers in different
+            //lists will move, we need to search through all the list and find
+            //the first valid docid as the initial value of temp_min_docid
+            for (int i = 0; i < num_of_lists; ++i) {
+                if (ptr[i].nextDoc < ptr[i].scoreList.scores.size()) {
+                    temp_min_docid = ptr[i].scoreList.getDocid(ptr[i].nextDoc);
+                    break;
+                }
+            }
+            // failed to initialize, meaning that all the lists are depleted.
+            // So we break the EVALUATEDOCUMENTS loop
+            if (temp_min_docid == -1) {
+                break EVALUATEDOCUMENTS;
+            }
+
+            //search through the lists, find the min docid
+            for (int i = 0; i < num_of_lists; ++i) {
+                //if the list is finished, then judge if all the lists are finished
+                if (ptr[i].nextDoc >= ptr[i].scoreList.scores.size()) {
+                    num_finishedlists++;//count the number of finished lists
+                    //if all lists are depleted, we break EVALUATEDOCUMENTS
+                    if (num_finishedlists == num_of_lists) {
+                        break EVALUATEDOCUMENTS;
+                    }
+                    continue;
+                }
+
+                int curr_docid = ptr[i].scoreList.getDocid(ptr[i].nextDoc);
+
+                //update temp_min_docid
+                //and remember the position of the minimum value;
+                if (curr_docid < temp_min_docid) {
+                    temp_min_docid = curr_docid;
+                }
+            }
+            //now we have the min_docid
+            double temp_scores[] = new double[num_of_lists];
+            double score = 1.0;
+            for (int i = 0; i < num_of_lists; ++i) {
+            	if (ptr[i].nextDoc < ptr[i].scoreList.scores.size()
+            			&& ptr[i].scoreList.getDocid(ptr[i].nextDoc) == temp_min_docid) {
+            		temp_scores[i] = ptr[i].scoreList.getDocidScore(ptr[i].nextDoc);
+            		ptr[i].nextDoc++;
+            	}
+            	else {
+            		temp_scores[i] = ((QryopSl)this.args.get(i)).getDefaultScore(r, temp_min_docid);
+            		//temp_scores[i] = getDefaultScore(r, temp_min_docid, ptr[i].scoreList.ctf, ptr[i].scoreList.field);
+            		//System.out.println("default score is " + temp_scores[i]);
+            	}
+            	//System.out.println("score is " + temp_scores[i]);
+            	score *= Math.pow(temp_scores[i], (1.0/num_of_lists));
+            	//System.out.println(score);
+            }
+            result.docScores.add(temp_min_docid, score);
+        }
+        freeDaaTPtrs ();
+        return result;
+    }
+    
     public QryResult evaluateBoolean (RetrievalModel r) throws IOException {
 
         //  Initialization
@@ -130,12 +206,22 @@ public class QryopSlAnd extends QryopSl {
      *  @param docid The internal id of the document that needs a default score.
      *  @return The default score.
      */
+    
     public double getDefaultScore (RetrievalModel r, long docid) throws IOException {
-
-        if (r instanceof RetrievalModelUnrankedBoolean)
+    	if (r instanceof RetrievalModelUnrankedBoolean)
             return (0.0);
-
-        return 0.0;
+    	if (r instanceof RetrievalModelIndri) {
+    		double score = 1.0;
+    		int num_of_lists = this.args.size();
+    		//System.out.println("num_of lists"+ num_of_lists);
+    		for (int i = 0; i < num_of_lists; ++i) {
+    			score *= Math.pow(((QryopSl)this.args.get(i)).getDefaultScore(r, docid), (1.0/(double)num_of_lists));
+    			//System.out.println("pow " + 1.0/(double)num_of_lists);
+    		}
+    		//System.out.println("SCORE IS " + score);
+    		return score;
+    	}
+    	return 0.0;
     }
 
     /*

@@ -5,16 +5,18 @@
  *  Copyright (c) 2014, Carnegie Mellon University.  All Rights Reserved.
  */
 
-import java.io.IOException;
 import java.util.*;
 
 import org.apache.lucene.document.Document;
 
 public class ScoreList {
 
-    //  A little utilty class to create a <docid, score> object.
-
-    public static class ScoreListEntry implements Comparable<ScoreListEntry> {
+	/**
+	 * ScoreList contains three fields: docid, score, externalID
+	 * @author haileiy
+	 *
+	 */
+    public static class ScoreListEntry {
         public int docid;//changed to public by haileiy
         public double score;
         public String externalID;
@@ -25,29 +27,22 @@ public class ScoreList {
         public void setExternalID (String extID) {
             this.externalID = extID;
         }
-        public int compareTo(ScoreListEntry o)
-        {
-            return(this.externalID.compareTo(o.externalID));
-        }
-        /*
-        final Comparator<ScoreListEntry> BY_SCORE = new Comparator<ScoreListEntry>() {
-        	public int compare(ScoreListEntry o1, ScoreListEntry o2) {
-                return (o1.score > o2.score) ? 1 : 0; // salary is also positive integer
-            }
-        };*/
-        public static final Comparator<ScoreListEntry> byScore = new Comparator<ScoreListEntry>() {
-            @Override
-            public int compare(ScoreListEntry o1, ScoreListEntry o2) {
-                return o1.score > o2.score ? 0 : 1;
-            }
-        };
     }
+    
+    Comparator<ScoreListEntry> BY_SCORE = new Comparator<ScoreListEntry> () {
+		public int compare(ScoreListEntry s1, ScoreListEntry s2) {
+			if (s1.score == s2.score) {//rank by id
+				return s1.externalID.compareTo(s2.externalID);
+			}
+			else if (s1.score > s2.score) return -1;
+			else return 1;
+		}
+	};
 
     List<ScoreListEntry> scores = new ArrayList<ScoreListEntry>();
-
-    public void sortScoreListByExternalId () {
-        Collections.sort(scores, Collections.reverseOrder());
-    }
+    //public int ctf;
+    //public String field;
+    
     /**
      *  Append a document score to a score list.
      *  @param docid An internal document id.
@@ -75,9 +70,12 @@ public class ScoreList {
     public int getDocid(int n) {
         return this.scores.get(n).docid;
     }
-
-    public void sortScoreListByScore () {
-        Collections.sort(scores, ScoreListEntry.byScore);
+    
+    /** Sort the results by score
+     * When there is a tie, sort by externalID
+     */
+    public void sortByScore() {
+    	Collections.sort(this.scores, this.BY_SCORE);
     }
     /**
      *  Get the score of the n'th document.

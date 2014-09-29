@@ -1,4 +1,9 @@
 indexPath=/Users/Caesar/Downloads/11642/hw1/index
-retrievalAlgorithm=RankedBoolean
+retrievalAlgorithm=BM25
 queryFilePath=queriesStructured.txt
 trecEvalOutputPath=HW1-queries-UB.teIn
+BM25:k_1= 1.2
+BM25:b= 0.75
+BM25:k_3= 0.0
+Indri:mu= 2500.0
+Indri:lambda= 0.4

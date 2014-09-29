@@ -5,8 +5,6 @@
  */
 
 import java.io.*;
-import java.util.ArrayList;
-import java.util.List;
 
 public class QryopIlNear extends QryopIl {
     int adjacency;//near/n
@@ -52,94 +50,62 @@ public class QryopIlNear extends QryopIl {
      */
     public QryResult evaluateBoolean (RetrievalModel r) throws IOException {
         //  Initialization
-        allocDaaTPtrs (r);
-        QryResult result = new QryResult ();
-        result.invertedList.field = new String (this.daatPtrs.get(0).invList.field);
+		allocDaaTPtrs (r);
 
-        //  Exact-match NEAR requires that ALL scoreLists contain a
-        //  document id.  Use the first (shortest) list to control the
-        //  search for matches.
+		QryResult result = new QryResult();
 
-        //  Named loops are a little ugly.  However, they make it easy
-        //  to terminate an outer loop from within an inner loop.
-        //  Otherwise it is necessary to use flags, which is also ugly.
+		InvList tempList = this.daatPtrs.get(0).invList;
+		for (int i = 1; i < args.size(); ++i) {
+			InvList currList = this.daatPtrs.get(i).invList;
+			InvList resList = new InvList();
+			for (int temp_doc = 0, curr_doc = 0; temp_doc < tempList.df && curr_doc < currList.df; ){
+				int temp_docid = tempList.postings.get(temp_doc).docid;
+				int curr_docid = currList.postings.get(curr_doc).docid;
+				if (temp_docid == curr_docid) {
+					int ifAppend = 0;
+					InvList.DocPosting to_append_posting = new InvList.DocPosting(tempList.postings.get(temp_doc).docid);
+					int temp_pos = 0;
+					int curr_pos = 0;
+					
+					while (temp_pos < tempList.postings.get(temp_doc).tf && curr_pos < currList.postings.get(curr_doc).tf) {
+						if (tempList.postings.get(temp_doc).positions.get(temp_pos) + this.adjacency < currList.postings.get(curr_doc).positions.get(curr_pos)) {
+							++temp_pos;
+						}
+						else if (tempList.postings.get(temp_doc).positions.get(temp_pos) > currList.postings.get(curr_doc).positions.get(curr_pos)) {
+							++curr_pos;
+						}
+						else {
+							int pos = currList.postings.get(curr_doc).positions.get(curr_pos);
+							to_append_posting.positions.add(pos);
+							ifAppend = 1;
+							++curr_pos;
+							++temp_pos;
+						}
+					}
+					++temp_doc;
+					++curr_doc;
+					if (ifAppend == 1) {
+						resList.appendPosting(curr_docid, to_append_posting.positions);
+					}
+				}
+				else if (temp_docid > curr_docid) {
+					++curr_doc;
+				}
+				else if (temp_docid < curr_docid) {
+					++temp_doc;
+				}
+			}
+			tempList = resList;//store the last resList in tempList, to be used 
+			//in the next comparison
+			//store the result
+			if (i == args.size()-1) {
+				result.invertedList = resList;
+				result.invertedList.field = currList.field;
+			}
+		}
 
-        DaaTPtr ptr0 = this.daatPtrs.get(0);
-
-        int num_of_lists = this.daatPtrs.size();
-        DaaTPtr ptr[] = new DaaTPtr[num_of_lists];
-        for (int i = 0; i < num_of_lists; ++i) {
-            ptr[i] = this.daatPtrs.get(i);
-            ptr[i].nextDoc = 0;
-
-        }
-
-        EVALUATEDOCUMENTS:
-
-        for ( ; ptr0.nextDoc < ptr0.invList.postings.size(); ptr0.nextDoc ++) {
-
-            int ptr0Docid = ptr0.invList.getDocid(ptr0.nextDoc);
-
-            //  Do the other query arguments have the ptr0Docid?
-            for (int j=1; j<this.daatPtrs.size(); j++) {
-                DaaTPtr ptrj = this.daatPtrs.get(j);
-                while (true) {
-                    if (ptrj.nextDoc >= ptrj.invList.postings.size())
-                        break EVALUATEDOCUMENTS;		// No more docs can match
-                    else if (ptrj.invList.getDocid (ptrj.nextDoc) > ptr0Docid)
-                        continue EVALUATEDOCUMENTS;	// The ptr0docid can't match.
-                    else if (ptrj.invList.getDocid (ptrj.nextDoc) < ptr0Docid)
-                        ptrj.nextDoc ++;			// Not yet at the right doc.
-                    else
-                        break;				// ptrj matches ptr0Docid
-                }
-            }
-
-            // cnt counts the number of passed compares. For example, if there are
-            // 3 list, in order to satisfy the requirement of NEAR, we need to
-            // compare list 0 and 1, 1 and 2. So there are two tests. After
-            // passing 2 compares, we regard it as satisfying the requirement of
-            // NEAR
-
-            //the score is not the official score. It just counts the number of
-            //matches in a document
-            int score = 0;
-
-            List<Integer> pos = new ArrayList<Integer>();
-            COMPARE:
-            for (int i = 0; i < ptr0.invList.postings.get(ptr0.nextDoc).positions.size(); ++i) {
-                int cnt = 0;
-                int last_pos = i;
-                TRAVERSE:
-                for (int j = 0; j < this.daatPtrs.size()-1; ++j) {
-                    for (int n = 0; n < ptr[j+1].invList.postings.get(ptr[j+1].nextDoc).positions.size(); ++n) {
-                        int m = last_pos;
-                        int diff = ptr[j+1].invList.postings.get(ptr[j+1].nextDoc).positions.get(n)
-                                   - ptr[j].invList.postings.get(ptr[j].nextDoc).positions.get(m);
-                        if (diff > 0 && diff <= this.adjacency) {
-                            ++cnt;
-                            //if we have compared enough lists, we know this docid
-                            //contains a match
-                            if(cnt == this.daatPtrs.size()-1) {
-                                //score is the count of occurances
-                                score++;
-                                pos.add(i);
-                                //continue to find more matches in this document
-                                continue COMPARE;
-                            }
-                            last_pos = n;//stores the position of last term
-                            continue TRAVERSE;//continue to check ptr[j+1] and ptr[j+2]
-                        }
-                    }
-                    break;
-                }
-            }
-            if (score > 0) {
-                result.invertedList.appendPosting(ptr0Docid, pos);
-            }
-        }
-        freeDaaTPtrs ();
-        return result;
+		freeDaaTPtrs();
+		return result;
     }
 
     /*

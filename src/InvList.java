@@ -18,7 +18,14 @@ public class InvList {
 
     //  Utility class that makes it easier to construct postings.
 
-    public class DocPosting {
+	/**
+	 * Invlists contain three fields: docid, tf, positions. 
+	 * Positions may take too much storage, so invlist is more
+	 * expensive than scorelist.
+	 * @author Caesar
+	 *
+	 */
+    public static class DocPosting {
 
         public int docid = 0;
         public int tf = 0;

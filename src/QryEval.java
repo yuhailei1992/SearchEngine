@@ -43,7 +43,13 @@ public class QryEval {
         analyzer.setStopwordRemoval(true);
         analyzer.setStemmer(EnglishAnalyzerConfigurable.StemmerType.KSTEM);
     }
-
+    
+    public static float BM25_k_1 = 0.0f;
+    public static float BM25_b = 0.0f;
+    public static float BM25_k_3 = 0.0f;
+    public static float Indri_mu = 0.0f;
+    public static float Indri_lambda = 0.0f;
+    public static DocLengthStore dls;
     /**
      *  @param args The only argument is the path to the parameter file.
      *  @throws Exception
@@ -81,8 +87,6 @@ public class QryEval {
             System.exit(1);
         }
 
-        DocLengthStore s = new DocLengthStore(READER);
-
         //initialize the appropriate retrieval model
         RetrievalModel model = new RetrievalModelRankedBoolean();
         if (params.get("retrievalAlgorithm").equals("UnrankedBoolean")) {
@@ -90,6 +94,28 @@ public class QryEval {
         }
         else if (params.get("retrievalAlgorithm").equals("RankedBoolean")) {
             model = new RetrievalModelRankedBoolean();
+        }
+        else if (params.get("retrievalAlgorithm").equals("BM25")) {
+            model = new RetrievalModelBM25();
+            dls = new DocLengthStore(READER);
+            if (!params.containsKey("BM25:k_1") || !params.containsKey("BM25:b") || !params.containsKey("BM25:k_3")) {
+            	System.err.println("Error: Parameters were missing for BM25.");
+                System.exit(1);
+            }
+            ///set the parameters of BM25
+            QryEval.BM25_k_1 = Float.parseFloat(params.get("BM25:k_1"));
+            QryEval.BM25_b = Float.parseFloat(params.get("BM25:b"));
+            QryEval.BM25_k_3 = Float.parseFloat(params.get("BM25:k_3"));
+        }
+        else if (params.get("retrievalAlgorithm").equals("Indri")) {
+        	model = new RetrievalModelIndri();
+        	dls = new DocLengthStore(READER);
+        	if (!params.containsKey("Indri:mu") || !params.containsKey("Indri:lambda")) {
+            	System.err.println("Error: Parameters were missing for Indri.");
+                System.exit(1);
+            }
+        	QryEval.Indri_mu = Float.parseFloat(params.get("Indri:mu"));
+        	QryEval.Indri_lambda = Float.parseFloat(params.get("Indri:lambda"));
         }
         else {
             System.err.println("Error: Unknown retrieval model.");
@@ -102,8 +128,6 @@ public class QryEval {
          *  are only useful in HW2 or HW3.
          */
 
-        // Lookup the document length of the body field of doc 0.
-        // How to use the term vector.
         /**
          *  The index is open. Start evaluating queries. The examples
          *  below show query trees for two simple queries.  These are
@@ -145,7 +169,7 @@ public class QryEval {
 
             do {
                 queryLine = queryScanner.nextLine();
-                //System.out.println("query is " + queryLine);
+                System.out.println("query is " + queryLine);
                 String[] parts = queryLine.split(":");
                 int queryID = 0;
                 //if the query line contains a queryID
@@ -158,14 +182,13 @@ public class QryEval {
                     queryLine = parts[1];
                 }
                 Qryop qTree;
-                qTree = parseQuery (queryLine);
+                qTree = parseQuery (queryLine, model);
                 QryResult result = qTree.evaluate (model);
+                System.out.println("rank begin");
                 if (result != null) {
-                    // score is the first ranking keyword, and externalId is
-                    // the second.
-                    rankByExternalId(result);
-                    rankByScore(result);
+                	rank(result);
                 }
+                System.out.println("rank end");
                 printResults (queryLine, result, queryID);
                 writeResults (writer, queryLine, result, queryID);
             } while (queryScanner.hasNext());
@@ -180,10 +203,9 @@ public class QryEval {
             System.out.println("Hardcoded test");
             Qryop qTree;
             String query = new String ("#or(apple banana)");
-            qTree = parseQuery (query);
+            qTree = parseQuery (query, model);
             QryResult result = qTree.evaluate (model);
-            rankByExternalId(result);
-            rankByScore(result);
+            rank(result);
             printResults (query, result, 1);
         }
         /*
@@ -193,33 +215,21 @@ public class QryEval {
          *  testing infrastructure to work on QryEval.
          */
 
-        // Later HW assignments will use more RAM, so you want to be aware
-        // of how much memory your program uses.
-
-        printMemoryUsage(false);
+        printMemoryUsage(true);
     }
 
     /**
-     * rank the results by externalId.
+     * rank the results by score.
      * @param result
      * @throws IOException
      */
-    static void rankByExternalId (QryResult result) throws IOException {
+    static void rank (QryResult result) throws IOException {
         //first, set the externalId
         for (ScoreList.ScoreListEntry p : result.docScores.scores) {
             p.setExternalID(getExternalDocid(p.docid));
         }
-        //then,  rank the results by externalId
-        result.docScores.sortScoreListByExternalId();
-    }
-
-    /**
-     * rank by score
-     * @param result
-     * @throws IOException
-     */
-    static void rankByScore (QryResult result) throws IOException {
-        result.docScores.sortScoreListByScore();
+        //then,  rank the results
+        result.docScores.sortByScore();
     }
 
     /**
@@ -280,7 +290,7 @@ public class QryEval {
      *          A query tree
      * @throws IOException
      */
-    static Qryop parseQuery(String qString) throws IOException {
+    static Qryop parseQuery(String qString, RetrievalModel model) throws IOException {
 
         Qryop currentOp = null;
         Stack<Qryop> stack = new Stack<Qryop>();
@@ -289,15 +299,29 @@ public class QryEval {
         // is a tiny bit easier if unnecessary whitespace is removed.
 
         qString = qString.trim();
-        //default operator is OR
-        if (qString.charAt(0) != '#') {
-            qString = "#or(" + qString + ")";
+        if (model instanceof RetrievalModelUnrankedBoolean || model instanceof RetrievalModelRankedBoolean) {
+	        if (qString.charAt(0) != '#') {
+	            qString = "#or(" + qString + ")";
+	        }
+	        if (qString.charAt(qString.length()-1) != ')') {
+	        	qString = "#or(" + qString + ")";
+	        }
+	        // if the query begins with #near, wrap it with #SCORE so that it returns
+	        // scorelist instead of invertedlist. I wrapped it with #OR instead,
+	        // since #OR does the same thing as #SCORE when there is only one term.
+	        if (qString.substring(0, 5).equalsIgnoreCase("#near")) {
+	            qString = "#or(" + qString + ")";
+	        }
         }
-        // if the query begins with #near, wrap it with #SCORE so that it returns
-        // scorelist instead of invertedlist. I wrapped it with #OR instead,
-        // since #OR does the same thing as #SCORE when there is only one term.
-        if (qString.substring(0, 5).equalsIgnoreCase("#near")) {
-            qString = "#or(" + qString + ")";
+        else  if (model instanceof RetrievalModelBM25) {
+        	if (qString.charAt(0) != '#' || qString.charAt(qString.length()-1) != ')') {
+	            qString = "#sum(" + qString + ")";
+	        }
+        }
+        else  if (model instanceof RetrievalModelIndri) {
+        	if (qString.charAt(0) != '#' || qString.charAt(qString.length()-1) != ')') {
+	            qString = "#and(" + qString + ")";
+	        }
         }
         // Tokenize the query.
         StringTokenizer tokens = new StringTokenizer(qString, "/\t\n\r ,()", true);
@@ -321,6 +345,10 @@ public class QryEval {
                 t = tokens.nextToken();
                 currentOp = new QryopIlNear(Integer.parseInt(t));
                 stack.push(currentOp);
+            } else if (token.equalsIgnoreCase("#sum")) {
+            	System.out.println("sum");
+            	currentOp = new QryopSlSum();
+            	stack.push(currentOp);
             } else if (token.equalsIgnoreCase("#syn")) {
                 currentOp = new QryopIlSyn();
                 stack.push(currentOp);
@@ -342,18 +370,19 @@ public class QryEval {
 
                 // split the token into term and field
                 String[] parts = token.split("\\.");
-                // if parts.length is 1, we know the query doesn't specify field
+                
+                // parts.length is 1: the query doesn't specify field
                 if (parts.length == 1) {
                     if (tokenizeQuery(token).length > 0) {
                         token = tokenizeQuery(parts[0])[0];
                         currentOp.add(new QryopIlTerm(token));
                     }
                 }
-                // parts.length is 2, we know the query specifies field
+                // parts.length is 2: the query specifies field
                 else if (parts.length == 2) {
                     if (tokenizeQuery(token).length > 0) {
-                        token = tokenizeQuery(parts[1])[0];
-                        currentOp.add(new QryopIlTerm(token, parts[0]));
+                        token = tokenizeQuery(parts[0])[0];
+                        currentOp.add(new QryopIlTerm(token, parts[1]));
                     }
                 }
             }
