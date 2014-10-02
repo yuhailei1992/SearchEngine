@@ -65,9 +65,11 @@ public class QryopSlAnd extends QryopSl {
         while (true) {
             int num_finishedlists = 0;//count the number of depleted lists
             int temp_min_docid = -1;//stores the min docid in one loop
-            //initialize the temp_min_docid. Since the pointers in different
-            //lists will move, we need to search through all the list and find
-            //the first valid docid as the initial value of temp_min_docid
+            /* 
+             * initialize the temp_min_docid. Since the pointers in different
+             * lists will move, we need to search through all the list and find
+             * the first valid docid as the initial value of temp_min_docid
+             */
             for (int i = 0; i < num_of_lists; ++i) {
                 if (ptr[i].nextDoc < ptr[i].scoreList.scores.size()) {
                     temp_min_docid = ptr[i].scoreList.getDocid(ptr[i].nextDoc);
@@ -111,12 +113,8 @@ public class QryopSlAnd extends QryopSl {
             	}
             	else {
             		temp_scores[i] = ((QryopSl)this.args.get(i)).getDefaultScore(r, temp_min_docid);
-            		//temp_scores[i] = getDefaultScore(r, temp_min_docid, ptr[i].scoreList.ctf, ptr[i].scoreList.field);
-            		//System.out.println("default score is " + temp_scores[i]);
             	}
-            	//System.out.println("score is " + temp_scores[i]);
             	score *= Math.pow(temp_scores[i], (1.0/num_of_lists));
-            	//System.out.println(score);
             }
             result.docScores.add(temp_min_docid, score);
         }

@@ -68,14 +68,15 @@ public class QryopSlScore extends QryopSl {
     	System.out.println("parameters " + QryEval.Indri_mu + '\t' + 
     			QryEval.Indri_lambda);
     	
-    	//get constants
+    	// get constants from invlist and index
     	String invfield = result.invertedList.field;
         int df = result.invertedList.df;
         int ctf = result.invertedList.ctf;
         long length_C = QryEval.READER.getSumTotalTermFreq(invfield);
+        // smoothing
         double p_MLE = ((double)ctf) / ((double)length_C);
         
-        //compute scores
+        // compute scores
         for (int j = 0; j < df; ++j) {
         	
             int docid = result.invertedList.postings.get(j).docid;
@@ -88,7 +89,7 @@ public class QryopSlScore extends QryopSl {
             result.docScores.add(docid, score);
         }
         
-        //prepare the result
+        //prepare the result, store the invlist's ctf and field in score object
         this.ctf = ctf;
         this.field = invfield;
         return result;

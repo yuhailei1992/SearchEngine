@@ -142,6 +142,7 @@ public class InvList {
      *  @return The internal document id.
      */
     public int getDocid(int n) {
+    	//System.out.println(n);
         return this.postings.get(n).docid;
     }
 

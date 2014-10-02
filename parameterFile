@@ -1,5 +1,5 @@
 indexPath=/Users/Caesar/Downloads/11642/hw1/index
-retrievalAlgorithm=BM25
+retrievalAlgorithm=Indri
 queryFilePath=queriesStructured.txt
 trecEvalOutputPath=HW1-queries-UB.teIn
 BM25:k_1= 1.2

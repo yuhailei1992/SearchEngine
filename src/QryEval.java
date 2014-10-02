@@ -291,8 +291,7 @@ public class QryEval {
      * @throws IOException
      */
     static Qryop parseQuery(String qString, RetrievalModel model) throws IOException {
-
-        Qryop currentOp = null;
+            Qryop currentOp = null;
         Stack<Qryop> stack = new Stack<Qryop>();
 
         // Add a default query operator to an unstructured query. This
@@ -300,31 +299,22 @@ public class QryEval {
 
         qString = qString.trim();
         if (model instanceof RetrievalModelUnrankedBoolean || model instanceof RetrievalModelRankedBoolean) {
-	        if (qString.charAt(0) != '#') {
+	        if (qString.charAt(0) != '#' || qString.toLowerCase().startsWith("#syn") || 
+	        		qString.substring(0, 5).equalsIgnoreCase("#near")) {
 	            qString = "#or(" + qString + ")";
 	        }
 	        if (qString.charAt(qString.length()-1) != ')') {
 	        	qString = "#or(" + qString + ")";
 	        }
-	        // if the query begins with #near, wrap it with #SCORE so that it returns
-	        // scorelist instead of invertedlist. I wrapped it with #OR instead,
-	        // since #OR does the same thing as #SCORE when there is only one term.
-	        if (qString.substring(0, 5).equalsIgnoreCase("#near")) {
-	            qString = "#or(" + qString + ")";
-	        }
         }
         else  if (model instanceof RetrievalModelBM25) {
-        	if (qString.charAt(0) != '#' || qString.charAt(qString.length()-1) != ')') {
-	            qString = "#sum(" + qString + ")";
-	        }
+        	qString = "#sum(" + qString + ")";
         }
         else  if (model instanceof RetrievalModelIndri) {
-        	if (qString.charAt(0) != '#' || qString.charAt(qString.length()-1) != ')') {
-	            qString = "#and(" + qString + ")";
-	        }
+        	qString = "#and(" + qString + ")";
         }
         // Tokenize the query.
-        StringTokenizer tokens = new StringTokenizer(qString, "/\t\n\r ,()", true);
+        StringTokenizer tokens = new StringTokenizer(qString, "\t\n\r ,()", true);//del /
         String token = null;
         // Each pass of the loop processes one token. To improve
         // efficiency and clarity, the query operator on the top of the
@@ -332,6 +322,7 @@ public class QryEval {
 
         while (tokens.hasMoreTokens()) {
             token = tokens.nextToken();
+            //String temp[] = token.split("/");
             if (token.matches("[ ,(\t\n\r]")) {
                 // Ignore most delimiters.
             } else if (token.equalsIgnoreCase("#and")) {
@@ -340,13 +331,11 @@ public class QryEval {
             } else if (token.equalsIgnoreCase("#or")) {
                 currentOp = new QryopSlOr();
                 stack.push(currentOp);
-            } else if (token.equalsIgnoreCase("#near")) {
-                String t = tokens.nextToken();//ignore the "/"
-                t = tokens.nextToken();
-                currentOp = new QryopIlNear(Integer.parseInt(t));
-                stack.push(currentOp);
+            } else if (token.toLowerCase().startsWith("#near")) {
+            	String temp[] = token.split("/");
+            	currentOp = new QryopIlNear(Integer.parseInt(temp[1]));
+            	stack.push(currentOp);
             } else if (token.equalsIgnoreCase("#sum")) {
-            	System.out.println("sum");
             	currentOp = new QryopSlSum();
             	stack.push(currentOp);
             } else if (token.equalsIgnoreCase("#syn")) {

@@ -70,9 +70,10 @@ public class QryopSlSum extends QryopSl {
             int num_finishedlists = 0;//count the number of depleted lists
             int temp_min_docid_pos = 0;//stores the index of the min docid
             int temp_min_docid = -1;//stores the min docid in one loop
-            //initialize the temp_min_docid. Since the pointers in different
-            //lists will move, we need to search through all the list and find
-            //the first valid docid as the initial value of temp_min_docid
+            /* initialize the temp_min_docid. Since the pointers in different
+             * lists will move, we need to search through all the list and find
+             * the first valid docid as the initial value of temp_min_docid
+             */
             for (int i = 0; i < num_of_lists; ++i) {
                 if (ptr[i].nextDoc < ptr[i].scoreList.scores.size()) {
                     temp_min_docid = ptr[i].scoreList.getDocid(ptr[i].nextDoc);
@@ -90,7 +91,7 @@ public class QryopSlSum extends QryopSl {
                 //if the list is finished, then judge if all the lists are finished
                 if (ptr[i].nextDoc >= ptr[i].scoreList.scores.size()) {
                     num_finishedlists++;//count the number of finished lists
-                    //if all lists are depleted, we break EVALUATEDOCUMENTS
+                    //if all lists are depleted, break EVALUATEDOCUMENTS
                     if (num_finishedlists == num_of_lists) {
                         break EVALUATEDOCUMENTS;
                     }
@@ -99,18 +100,18 @@ public class QryopSlSum extends QryopSl {
 
                 int curr_docid = ptr[i].scoreList.getDocid(ptr[i].nextDoc);
 
-                //update temp_min_docid
-                //and remember the position of the minimum value;
+                //update temp_min_docid and store the position of the min value
                 if (curr_docid <= temp_min_docid) {
                     temp_min_docid = curr_docid;
                     temp_min_docid_pos = i;
                 }
             }
 
-            //duplicate entry. Need to find the one with the max score
-            //The docids are inserted into the result in order.
-            //So, if the temp_min_docid is equal to curr_min_docid, we know that
-            //there are duplicates.
+            /* duplicate entry. Need to find the one with the max score
+             * The docids are inserted into the result in order.
+             * So, if the temp_min_docid is equal to curr_min_docid, we know that
+             * there are duplicates.
+             */
             if (temp_min_docid == curr_min_docid) {
                 double curr_score = ptr[temp_min_docid_pos].scoreList.
                                     getDocidScore(ptr[temp_min_docid_pos].nextDoc) + result.docScores.getLast().score;
@@ -118,9 +119,10 @@ public class QryopSlSum extends QryopSl {
                 result.docScores.add(temp_min_docid, curr_score);
                 ptr[temp_min_docid_pos].nextDoc++;
             }
-
-            // if temp_min_docid is greater than curr_min_docid, insert it to
-            // the result.
+            /* 
+             * if temp_min_docid is greater than curr_min_docid, insert it to
+             * the result.
+             */
             if (temp_min_docid > curr_min_docid) {
                 double toInsert = ptr[temp_min_docid_pos].scoreList.
                                   getDocidScore(ptr[temp_min_docid_pos].nextDoc);
