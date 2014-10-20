@@ -52,6 +52,14 @@ public class QryopSlWAnd extends QryopSl {
     public QryResult evaluateIndri (RetrievalModel r) throws IOException {
     	
     	//pre processing
+    	String nums = "0123456789";
+    	for (int i = 0; i < this.args.size()-1; ++i) {
+    		if (nums.contains(((QryopIlTerm)this.args.get(i)).field) &&
+    				nums.contains(((QryopIlTerm)this.args.get(i+1)).field)) {
+    			System.out.println("stopword!");
+    			this.args.remove(i);
+    		}
+    	}
     	ArrayList<Qryop> bakargs = new ArrayList<Qryop>();
     	for (int i = 0; i < this.args.size(); ++i) {
     		if (i % 2 == 0) {//weights
@@ -129,7 +137,7 @@ public class QryopSlWAnd extends QryopSl {
             	else {
             		temp_scores[i] = ((QryopSl)this.args.get(i)).getDefaultScore(r, temp_min_docid);
             	}
-            	score *= Math.pow(temp_scores[i], (1.0/num_of_lists));
+            	score *= Math.pow(temp_scores[i], (this.weight.get(i)));
             }
             result.docScores.add(temp_min_docid, score);
         }
@@ -229,9 +237,6 @@ public class QryopSlWAnd extends QryopSl {
     		System.out.println("numoflists " + num_of_lists);
     		for (int i = 0; i < num_of_lists; ++i) {
     			score *= ((QryopSl)this.args.get(i)).getDefaultScore(r, docid);
-    			
-    			//score *= Math.pow(((QryopSl)this.args.get(i)).getDefaultScore(r, docid), (1.0/(double)num_of_lists));
-    			//System.out.println("pow " + 1.0/(double)num_of_lists);
     		}
     		System.out.println(Math.pow(score, (1.0/(double)num_of_lists)));
     		return Math.pow(score, (1.0/(double)num_of_lists));
