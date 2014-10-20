@@ -158,56 +158,44 @@ public class QryEval {
          * queries from file or just use the hardcoded query. Very useful for
          * testing.
          */
-        int isHardCodeTest = 0;
-        if (isHardCodeTest == 0) {
-            Scanner queryScanner = new Scanner(new File(params.get("queryFilePath")));
-            String queryLine = null;
+        Scanner queryScanner = new Scanner(new File(params.get("queryFilePath")));
+        String queryLine = null;
 
-            BufferedWriter writer = null;
-            writer = new BufferedWriter(new FileWriter(new File(
-                                            params.get("trecEvalOutputPath"))));
+        BufferedWriter writer = null;
+        writer = new BufferedWriter(new FileWriter(new File(
+                                        params.get("trecEvalOutputPath"))));
 
-            do {
-                queryLine = queryScanner.nextLine();
-                System.out.println("query is " + queryLine);
-                String[] parts = queryLine.split(":");
-                int queryID = 0;
-                //if the query line contains a queryID
-                if (parts.length == 1) {
-                    queryLine = parts[0];
-                }
-                //the query line doesn't contain a queryID
-                else {
-                    queryID = Integer.parseInt(parts[0]);
-                    queryLine = parts[1];
-                }
-                Qryop qTree;
-                qTree = parseQuery (queryLine, model);
-                QryResult result = qTree.evaluate (model);
-                System.out.println("rank begin");
-                if (result != null) {
-                	rank(result);
-                }
-                System.out.println("rank end");
-                printResults (queryLine, result, queryID);
-                writeResults (writer, queryLine, result, queryID);
-            } while (queryScanner.hasNext());
-            try {
-                writer.close();
-                queryScanner.close();
-            } catch (Exception e) {
+        do {
+            queryLine = queryScanner.nextLine();
+            System.out.println("query is " + queryLine);
+            String[] parts = queryLine.split(":");
+            int queryID = 0;
+            //if the query line contains a queryID
+            if (parts.length == 1) {
+                queryLine = parts[0];
             }
-        }
-        else {
-            //hardcoded tests are only used for testing a single query.
-            System.out.println("Hardcoded test");
+            //the query line doesn't contain a queryID
+            else {
+                queryID = Integer.parseInt(parts[0]);
+                queryLine = parts[1];
+            }
             Qryop qTree;
-            String query = new String ("#or(apple banana)");
-            qTree = parseQuery (query, model);
+            qTree = parseQuery (queryLine, model);
             QryResult result = qTree.evaluate (model);
-            rank(result);
-            printResults (query, result, 1);
+            System.out.println("rank begin");
+            if (result != null) {
+            	rank(result);
+            }
+            System.out.println("rank end");
+            printResults (queryLine, result, queryID);
+            writeResults (writer, queryLine, result, queryID);
+        } while (queryScanner.hasNext());
+        try {
+            writer.close();
+            queryScanner.close();
+        } catch (Exception e) {
         }
+        
         /*
          *  Create the trec_eval output.  Your code should write to the
          *  file specified in the parameter file, and it should write the
@@ -300,7 +288,8 @@ public class QryEval {
         qString = qString.trim();
         if (model instanceof RetrievalModelUnrankedBoolean || model instanceof RetrievalModelRankedBoolean) {
 	        if (qString.charAt(0) != '#' || qString.toLowerCase().startsWith("#syn") || 
-	        		qString.substring(0, 5).equalsIgnoreCase("#near")) {
+	        		qString.substring(0, 5).equalsIgnoreCase("#near") ||
+	        		qString.substring(0, 7).equalsIgnoreCase("#window")) {
 	            qString = "#or(" + qString + ")";
 	        }
 	        if (qString.charAt(qString.length()-1) != ')') {
@@ -322,7 +311,6 @@ public class QryEval {
 
         while (tokens.hasMoreTokens()) {
             token = tokens.nextToken();
-            //String temp[] = token.split("/");
             if (token.matches("[ ,(\t\n\r]")) {
                 // Ignore most delimiters.
             } else if (token.equalsIgnoreCase("#and")) {
@@ -335,8 +323,18 @@ public class QryEval {
             	String temp[] = token.split("/");
             	currentOp = new QryopIlNear(Integer.parseInt(temp[1]));
             	stack.push(currentOp);
+            } else if (token.toLowerCase().startsWith("#window")) {
+            	String temp[] = token.split("/");
+            	currentOp = new QryopIlWindow(Integer.parseInt(temp[1]));
+            	stack.push(currentOp);
             } else if (token.equalsIgnoreCase("#sum")) {
             	currentOp = new QryopSlSum();
+            	stack.push(currentOp);
+            } else if (token.equalsIgnoreCase("#wand")) {
+            	currentOp = new QryopSlWAnd();
+            	stack.push(currentOp);
+            } else if (token.equalsIgnoreCase("#wsum")) {
+            	currentOp = new QryopSlWSum();
             	stack.push(currentOp);
             } else if (token.equalsIgnoreCase("#syn")) {
                 currentOp = new QryopIlSyn();

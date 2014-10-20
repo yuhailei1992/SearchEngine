@@ -90,7 +90,7 @@ public class QryopSlScore extends QryopSl {
         }
         
         //prepare the result, store the invlist's ctf and field in score object
-        this.ctf = ctf;
+        this.ctf = ctf;//haileiy1019
         this.field = invfield;
         return result;
     }
@@ -100,11 +100,10 @@ public class QryopSlScore extends QryopSl {
     	QryResult result = args.get(0).evaluate(r);
     	System.out.println("parameters " + QryEval.BM25_k_1 + '\t' + 
     			QryEval.BM25_b + '\t' + QryEval.BM25_k_3);
-    	
     	//get the contants from index.
         String invfield = result.invertedList.field;
-        int N = QryEval.READER.getDocCount(invfield);
-        double avg_doclen = QryEval.READER.getSumTotalTermFreq(invfield) / N;
+        int N = QryEval.READER.numDocs();
+        double avg_doclen = (double)QryEval.READER.getSumTotalTermFreq(invfield) / QryEval.READER.getDocCount(invfield);//haileiy 1011
         int df = result.invertedList.df;
 
         //calculate the weights
@@ -112,12 +111,12 @@ public class QryopSlScore extends QryopSl {
         
         //calculate scores
         for (int j = 0; j < df; ++j) {//calculates scores for every document
-            
-        	int docid = result.invertedList.postings.get(j).docid;
-            long doclen = QryEval.dls.getDocLength(invfield, docid);
+            int docid = result.invertedList.getDocid(j);//haileiy
+        	int tf = result.invertedList.getTf(j);//haileiy
+
+        	long doclen = QryEval.dls.getDocLength(invfield, docid);
             
             //calculate the tf_weight
-            int tf = result.invertedList.postings.get(j).tf;
             double tf_weight = tf / ((double)tf + QryEval.BM25_k_1 * ((1 - QryEval.BM25_b) + 
             		QryEval.BM25_b * doclen / avg_doclen));
             
@@ -151,7 +150,7 @@ public class QryopSlScore extends QryopSl {
             }
             else if (r instanceof RetrievalModelRankedBoolean) {
                 result.docScores.add(result.invertedList.postings.get(i).docid,
-                                     (float)result.invertedList.postings.get(i).tf);
+                                     (double)result.invertedList.postings.get(i).tf);
             }
         }
 
@@ -173,13 +172,10 @@ public class QryopSlScore extends QryopSl {
      *  @return The default score.
      */
     public double getDefaultScore (RetrievalModel r, long docid) throws IOException {
-
-        if (r instanceof RetrievalModelUnrankedBoolean)
-            return (0.0);
         if (r instanceof RetrievalModelIndri){
         	long length_d = QryEval.dls.getDocLength(this.field, (int)docid);//should be long? haileiy
         	long length_C = QryEval.READER.getSumTotalTermFreq(this.field);
-            float p_MLE = ((float)this.ctf) / ((float)length_C);
+            double p_MLE = ((double)this.ctf) / ((double)length_C);
         	double score = QryEval.Indri_lambda * (QryEval.Indri_mu * p_MLE) / 
         			(length_d + QryEval.Indri_mu) + (1 - QryEval.Indri_lambda) * p_MLE;
         	return score;

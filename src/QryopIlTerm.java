@@ -12,8 +12,8 @@ import java.io.*;
 
 public class QryopIlTerm extends QryopIl {
 
-    private String term;
-    private String field;
+    public String term;
+    public String field;
 
     /**
      *  Constructor.  The term is assumed to match the body field.

@@ -49,7 +49,6 @@ public class QryopSlAnd extends QryopSl {
      *  @throws IOException
      */
     public QryResult evaluateIndri (RetrievalModel r) throws IOException {
-    	
     	allocDaaTPtrs (r);
         QryResult result = new QryResult ();
     	int num_of_lists = this.daatPtrs.size();
@@ -59,7 +58,6 @@ public class QryopSlAnd extends QryopSl {
             ptr[i] = this.daatPtrs.get(i);
             ptr[i].nextDoc = 0;
         }
-        //System.out.println(num_of_lists);
 
         EVALUATEDOCUMENTS:
         while (true) {
@@ -211,13 +209,11 @@ public class QryopSlAnd extends QryopSl {
     	if (r instanceof RetrievalModelIndri) {
     		double score = 1.0;
     		int num_of_lists = this.args.size();
-    		//System.out.println("num_of lists"+ num_of_lists);
     		for (int i = 0; i < num_of_lists; ++i) {
-    			score *= Math.pow(((QryopSl)this.args.get(i)).getDefaultScore(r, docid), (1.0/(double)num_of_lists));
-    			//System.out.println("pow " + 1.0/(double)num_of_lists);
+    			score *= ((QryopSl)this.args.get(i)).getDefaultScore(r, docid);
     		}
-    		//System.out.println("SCORE IS " + score);
-    		return score;
+    		//System.out.println(Math.pow(score, (1.0/(double)num_of_lists)));
+    		return Math.pow(score, (1.0/(double)num_of_lists));
     	}
     	return 0.0;
     }

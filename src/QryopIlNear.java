@@ -70,7 +70,7 @@ public class QryopIlNear extends QryopIl {
 		for (int i = 1; i < args.size(); ++i) {
 			InvList currList = this.daatPtrs.get(i).invList;
 			InvList resList = new InvList();
-			
+			//result.invertedList.ctf = currList.ctf;
 			for (int temp_doc = 0, curr_doc = 0; temp_doc < tempList.df && curr_doc < currList.df; ){
 				int temp_docid = tempList.postings.get(temp_doc).docid;
 				int curr_docid = currList.postings.get(curr_doc).docid;
@@ -132,11 +132,11 @@ public class QryopIlNear extends QryopIl {
 			if (i == args.size()-1) {
 				result.invertedList = resList;
 				result.invertedList.field = currList.field;
-				result.invertedList.ctf = currList.ctf;
+				//result.invertedList.ctf = currList.ctf;
 			}
 		}
-
 		freeDaaTPtrs();
+		System.out.println(result.invertedList.ctf);
 		return result;
     }
 
