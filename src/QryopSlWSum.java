@@ -50,7 +50,18 @@ public class QryopSlWSum extends QryopSl {
      *  @throws IOException
      */
     public QryResult evaluateIndri (RetrievalModel r) throws IOException {
-    	//pre processing
+    	//pre processing. Remove weights for stopwords
+    	/*String nums = "0123456789";
+    	for (int i = 0; i < this.args.size()-1; ++i) {
+    		//if (this.args.get(0) instanceof QryopIl) {
+	    		if (nums.contains(((QryopIlTerm)this.args.get(i)).field) &&
+	    				nums.contains(((QryopIlTerm)this.args.get(i+1)).field)) {
+	    			System.out.println("stopword!");
+	    			this.args.remove(i);
+	    		}
+    		//}
+    	}
+    	
     	ArrayList<Qryop> bakargs = new ArrayList<Qryop>();
     	for (int i = 0; i < this.args.size(); ++i) {
     		if (i % 2 == 0) {//weights
@@ -64,7 +75,7 @@ public class QryopSlWSum extends QryopSl {
     		}
     	}
     	this.args = bakargs;
-    	
+    	*/
     	allocDaaTPtrs (r);
         QryResult result = new QryResult ();
     	int num_of_lists = this.daatPtrs.size();

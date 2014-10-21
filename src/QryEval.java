@@ -279,7 +279,7 @@ public class QryEval {
      * @throws IOException
      */
     static Qryop parseQuery(String qString, RetrievalModel model) throws IOException {
-            Qryop currentOp = null;
+        Qryop currentOp = null;
         Stack<Qryop> stack = new Stack<Qryop>();
 
         // Add a default query operator to an unstructured query. This
@@ -308,10 +308,15 @@ public class QryEval {
         // Each pass of the loop processes one token. To improve
         // efficiency and clarity, the query operator on the top of the
         // stack is also stored in currentOp.
-
+        int isWeight = 1;
         while (tokens.hasMoreTokens()) {
             token = tokens.nextToken();
             if (token.matches("[ ,(\t\n\r]")) {
+            	if (token.matches(" ")) {
+            		continue;
+            	}
+            	isWeight = 1;
+            	//continue;
                 // Ignore most delimiters.
             } else if (token.equalsIgnoreCase("#and")) {
                 currentOp = new QryopSlAnd();
@@ -347,6 +352,7 @@ public class QryEval {
                 // below). Otherwise, add the current operator as an
                 // argument to the higher-level operator, and shift
                 // processing back to the higher-level operator.
+            	isWeight = 1;
                 stack.pop();
                 if (stack.empty())
                     break;
@@ -354,24 +360,46 @@ public class QryEval {
                 currentOp = stack.peek();
                 currentOp.add(arg);
             } else {
-
                 // split the token into term and field
-                String[] parts = token.split("\\.");
-                
-                // parts.length is 1: the query doesn't specify field
-                if (parts.length == 1) {
-                    if (tokenizeQuery(token).length > 0) {
-                        token = tokenizeQuery(parts[0])[0];
-                        currentOp.add(new QryopIlTerm(token));
-                    }
-                }
-                // parts.length is 2: the query specifies field
-                else if (parts.length == 2) {
-                    if (tokenizeQuery(token).length > 0) {
-                        token = tokenizeQuery(parts[0])[0];
-                        currentOp.add(new QryopIlTerm(token, parts[1]));
-                    }
-                }
+            	if (isWeight == 1 && (currentOp instanceof QryopSlWAnd || currentOp instanceof QryopSlWSum)) {
+	            	if (isWeight == 1) {
+	            		isWeight = 0;
+            			if (currentOp instanceof QryopSlWAnd) {
+            				((QryopSlWAnd)currentOp).weight.add(Float.parseFloat(token));
+            			}
+            			else if (currentOp instanceof QryopSlWSum) {
+            				((QryopSlWSum)currentOp).weight.add(Double.parseDouble(token));
+            			}
+            			//continue;
+            		}
+	            	else {
+	            		isWeight = 1;
+	            	}
+             	}
+            	else {
+            		if (isWeight == 1) isWeight = 0;
+            		else isWeight = 1;
+            		//isWeight = 1;
+	                String[] parts = token.split("\\.");
+	                
+	                // parts.length is 1: the query doesn't specify field
+	                if (parts.length == 1) {
+	                    if (tokenizeQuery(token).length > 0) {
+	                        token = tokenizeQuery(parts[0])[0];
+	                        currentOp.add(new QryopIlTerm(token));
+	                    }
+	                }
+	                // parts.length is 2: the query specifies field
+	                else if (parts.length == 2) {
+	                    if (tokenizeQuery(token).length > 0) {
+	                    	if (tokenizeQuery(parts[0]).length != 0) {
+		                        token = tokenizeQuery(parts[0])[0];
+		                        currentOp.add(new QryopIlTerm(token, parts[1]));
+	                    	}
+	                    }
+	                }
+	                //isWeight = 1;
+            	}
             }
         }
 

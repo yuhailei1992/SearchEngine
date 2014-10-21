@@ -1,1 +1,1 @@
-71:#WAND( 0.3 living 0.1 in 0.6 india )
+52:#WSUM(0.3 avp 0.7 #AND(Association volleyball) ) 

@@ -52,6 +52,7 @@ public class QryopSlWAnd extends QryopSl {
     public QryResult evaluateIndri (RetrievalModel r) throws IOException {
     	
     	//pre processing
+    	/*
     	String nums = "0123456789";
     	for (int i = 0; i < this.args.size()-1; ++i) {
     		if (nums.contains(((QryopIlTerm)this.args.get(i)).field) &&
@@ -73,6 +74,7 @@ public class QryopSlWAnd extends QryopSl {
     		}
     	}
     	this.args = bakargs;
+    	*/
     	
     	allocDaaTPtrs (r);
         QryResult result = new QryResult ();
@@ -234,11 +236,11 @@ public class QryopSlWAnd extends QryopSl {
     	if (r instanceof RetrievalModelIndri) {
     		double score = 1.0;
     		int num_of_lists = this.args.size();
-    		System.out.println("numoflists " + num_of_lists);
+    		//System.out.println("numoflists " + num_of_lists);
     		for (int i = 0; i < num_of_lists; ++i) {
     			score *= ((QryopSl)this.args.get(i)).getDefaultScore(r, docid);
     		}
-    		System.out.println(Math.pow(score, (1.0/(double)num_of_lists)));
+    		//System.out.println(Math.pow(score, (1.0/(double)num_of_lists)));
     		return Math.pow(score, (1.0/(double)num_of_lists));
     	}
     	return 0.0;

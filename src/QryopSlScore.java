@@ -65,8 +65,6 @@ public class QryopSlScore extends QryopSl {
     public QryResult evaluateIndri(RetrievalModel r) throws IOException {
     	
     	QryResult result = args.get(0).evaluate(r);
-    	System.out.println("parameters " + QryEval.Indri_mu + '\t' + 
-    			QryEval.Indri_lambda);
     	
     	// get constants from invlist and index
     	String invfield = result.invertedList.field;

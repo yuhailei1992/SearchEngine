@@ -114,6 +114,8 @@ public class QryopSlAnd extends QryopSl {
             	}
             	score *= Math.pow(temp_scores[i], (1.0/num_of_lists));
             }
+            //System.out.println(score);
+
             result.docScores.add(temp_min_docid, score);
         }
         freeDaaTPtrs ();
