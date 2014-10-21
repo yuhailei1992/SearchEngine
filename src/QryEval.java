@@ -383,6 +383,23 @@ public class QryEval {
 	                String[] parts = token.split("\\.");
 	                
 	                // parts.length is 1: the query doesn't specify field
+	                System.out.println(parts[0]);
+	                //if it is a stopword, then remove the weight in our qryop
+	                if (tokenizeQuery(parts[0]).length == 0) {
+	                	System.out.println("stopwords");
+	                	if (currentOp instanceof QryopSlWAnd || currentOp instanceof QryopSlWSum) {
+	                		if (currentOp instanceof QryopSlWAnd) {
+	                			int idx = ((QryopSlWAnd)currentOp).weight.size();
+	            				((QryopSlWAnd)currentOp).weight.remove(idx-1);
+	            			}
+	            			else if (currentOp instanceof QryopSlWSum) {
+	            				int idx = ((QryopSlWSum)currentOp).weight.size();
+	            				((QryopSlWSum)currentOp).weight.remove(idx-1);
+	            			}
+	                		
+	                	}
+	                	continue;
+	                }
 	                if (parts.length == 1) {
 	                    if (tokenizeQuery(token).length > 0) {
 	                        token = tokenizeQuery(parts[0])[0];

@@ -51,30 +51,6 @@ public class QryopSlWAnd extends QryopSl {
      */
     public QryResult evaluateIndri (RetrievalModel r) throws IOException {
     	
-    	//pre processing
-    	/*
-    	String nums = "0123456789";
-    	for (int i = 0; i < this.args.size()-1; ++i) {
-    		if (nums.contains(((QryopIlTerm)this.args.get(i)).field) &&
-    				nums.contains(((QryopIlTerm)this.args.get(i+1)).field)) {
-    			System.out.println("stopword!");
-    			this.args.remove(i);
-    		}
-    	}
-    	ArrayList<Qryop> bakargs = new ArrayList<Qryop>();
-    	for (int i = 0; i < this.args.size(); ++i) {
-    		if (i % 2 == 0) {//weights
-    			String temp = ((QryopIlTerm)this.args.get(i)).term + "." +
-        				((QryopIlTerm)this.args.get(i)).field;
-    			System.out.println(temp);
-    			this.weight.add(Float.parseFloat(temp));
-    		}
-    		else {
-    			bakargs.add(this.args.get(i));
-    		}
-    	}
-    	this.args = bakargs;
-    	*/
     	
     	allocDaaTPtrs (r);
         QryResult result = new QryResult ();

@@ -36,6 +36,7 @@ public class DocLengthStore  {
      * @param docid The internal docid in the lucene index.
      */
     public long getDocLength(String fieldname, int docid) throws IOException {
-        return values.get(fieldname).get(docid);
+        //System.out.println("fieldname : " + fieldname + " docid " + docid );
+    	return values.get(fieldname).get(docid);
     }
 }
