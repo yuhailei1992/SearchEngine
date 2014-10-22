@@ -116,7 +116,6 @@ public class QryopIlWindow extends QryopIl {
 					}
 					//match
 					//advance all these pointers and store the position into result.
-					//to_append_posting.tf++;
 					
 					to_append_posting.positions.add(temp_min);
 					flag = 1;
