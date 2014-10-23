@@ -1,6 +1,6 @@
 indexPath=/Users/Caesar/Downloads/index
 retrievalAlgorithm=Indri
-queryFilePath=/Users/Caesar/Documents/workspace/SearchEngineLab1/query copy 6.txt
+queryFilePath=/Users/Caesar/Documents/workspace/SearchEngineLab1/queries.txt
 trecEvalOutputPath=/Users/Caesar/Documents/workspace/SearchEngineLab1/HW1-queries-UB.teIn
 BM25:k_1=1.2 
 BM25:b=0.75
