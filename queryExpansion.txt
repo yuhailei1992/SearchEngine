@@ -1,1 +1,1 @@
-10: #WAND ( 0.3426 cheap 0.2319 internet 0.1548 host 0.0954 web 0.0552 domain 0.0404 dial 0.0382 provider 0.0380 service 0.0361 fast 0.0309 cable )
+10: #WAND ( 0.7513 avp 0.1201 newsletter 0.0809 tour 0.0767 antiviru 0.0469 croc 0.0447 event 0.0426 2008 0.0397 2007 0.0375 season 0.0357 onsite )

@@ -57,13 +57,17 @@ public class QryEval {
      */
     public static void main(String[] args) throws Exception {
 
-        // must supply parameter file
+        /*
+         * check if the parameters are valid
+         */
         if (args.length < 1) {
             System.err.println(usage);
             System.exit(1);
         }
 
-        // read in the parameter file; one parameter per line in format of key=value
+        /*
+         *  read in the parameter file; one parameter per line in format of key=value
+         */
         Map<String, String> params = new HashMap<String, String>();
         Scanner scan = new Scanner(new File(args[0]));
         String line = null;
@@ -76,13 +80,17 @@ public class QryEval {
         } while (scan.hasNext());
         scan.close();
 
-        // parameters required for this example to run
+        /*
+         *  parameters required for this example to run
+         */
         if (!params.containsKey("indexPath")) {
             System.err.println("Error: Parameters were missing.");
             System.exit(1);
         }
 
-        // open the index
+        /*
+         *  open the index
+         */
         READER = DirectoryReader.open(FSDirectory.open(new File(params.get("indexPath"))));
 
         if (READER == null) {
@@ -90,7 +98,9 @@ public class QryEval {
             System.exit(1);
         }
 
-        //initialize the appropriate retrieval model
+        /* 
+         * initialize the appropriate retrieval model
+         */
         RetrievalModel model = new RetrievalModelRankedBoolean();
         if (params.get("retrievalAlgorithm").equals("UnrankedBoolean")) {
             model = new RetrievalModelUnrankedBoolean();
@@ -125,113 +135,187 @@ public class QryEval {
             System.exit(1);
         }
 
+        /*
+         * scan the query file
+         */
         Scanner queryScanner = new Scanner(new File(params.get("queryFilePath")));
         String queryLine = null;
 
         BufferedWriter writer = null;
         writer = new BufferedWriter(new FileWriter(new File(
                                         params.get("trecEvalOutputPath"))));
-
+        /*
+         * iteratively process all the queries
+         */
         do {
             queryLine = queryScanner.nextLine();
             System.out.println("query is " + queryLine);
             String[] parts = queryLine.split(":");
             int queryID = 0;
-            //if the query line contains a queryID
+            //if the query line doesn't contain a queryID
             if (parts.length == 1) {
                 queryLine = parts[0];
             }
-            //the query line doesn't contain a queryID
+            //the query line contains a queryID
             else {
                 queryID = Integer.parseInt(parts[0]);
                 queryLine = parts[1];
             }
-            Qryop qTree;
-            qTree = parseQuery (queryLine, model);
-            QryResult result = qTree.evaluate (model);
-            
-            System.out.println("rank begin");
-            if (result != null) {
-            	rank(result);
+            /*
+             * hw4
+             */
+            // no query expansion
+            if (!params.containsKey("fb") || !Boolean.parseBoolean(params.get("fb"))) {
+            	// use the query to retrieve documents
+            	System.out.println("directly retrieve");
+            	Qryop qTree;
+                qTree = parseQuery (queryLine, model);
+                QryResult result = qTree.evaluate (model);
+                
+                System.out.println("rank begin");
+                if (result != null) {
+                	rank(result);
+                }
+                System.out.println("rank end");
+                printResults (queryLine, result, queryID);
+                writeResults (writer, queryLine, result, queryID);
             }
-            System.out.println("rank end");
-            printResults (queryLine, result, queryID);
-            writeResults (writer, queryLine, result, queryID);
-            
-            //query expansion
-            if (params.containsKey("fb") && Boolean.parseBoolean(params.get("fb"))) {
+            else {//with query expansion
+            	ArrayList<Integer> top_docid = new ArrayList<Integer>();//stores the top N document ids
+            	ArrayList<Double> top_scores = new ArrayList<Double>();//stores the top N Indri scores
+            	//if there is initialranking file, fetch the ranking from that file
             	if (params.containsKey("fbInitialRankingFile")) {
             		//read the file
+            		System.out.println("read file");
+            		Scanner scan_ranking = new Scanner(new File(params.get("fbInitialRankingFile")));
+            		String line_ranking = null;
+            		int j = 0;
+                    do {
+                    	line_ranking = scan_ranking.nextLine();
+                        String[] pair = line_ranking.split(" ");
+                        
+                        top_docid.add(getInternalDocid(pair[2]));
+                        top_scores.add(Double.parseDouble(pair[4]));
+                        System.out.println("The extid is " + pair[2] + "score" + pair[4]);
+                        j++;
+                    } while (scan_ranking.hasNext() && j < Integer.parseInt(params.get("fbTerms")));
+                    scan_ranking.close();
             	}
-            }
-            System.out.println("Query expansion");
-            HashMap<String, Double> hm = new HashMap<String, Double>();
-            double fbMu = Double.parseDouble(params.get("fbMu"));
-            for (int i = 0; i < Math.min(Integer.parseInt(params.get("fbDocs")), result.docScores.scores.size()); ++i) {
-            	TermVector tv = new TermVector(result.docScores.getDocid(i), "body");
-            	double length_d = (double)QryEval.dls.getDocLength("body", result.docScores.getDocid(i));
-            	double length_C = (double)QryEval.READER.getSumTotalTermFreq("body");
-            	for (int j = 1; j < tv.terms.length; ++j) {
-            		String curr_term = tv.stemString(j);
-            		//compute the score
-            		double ctf = (double)tv.totalStemFreq(j);
-            		double p_MLE = ((double)ctf) / ((double)length_C);
-            		double p_td = (tv.stemFreq(j) + fbMu * p_MLE) / (length_d + fbMu);
-            		double p_Id = result.docScores.getDocidScore(i);
-            		double p_tC = Math.log(length_C / ctf);
-            		//update the hashmap
-            		double score = p_td * p_Id * p_tC;
-            		if (hm.containsKey(curr_term)) {
-            			hm.put(curr_term, hm.get(curr_term) + score);
-            		}
-            		else {
-            			hm.put(curr_term, score);
-            		}
+            	else {
+            		System.out.println("query expansion");
+            		Qryop qTree;
+                    qTree = parseQuery (queryLine, model);
+                    QryResult result = qTree.evaluate (model);
+                    
+                    System.out.println("rank begin");
+                    if (result != null) {
+                    	rank(result);
+                    }
+                    System.out.println("rank end");
+                    //query expansion
+                    for (int i = 0; i < Math.min(Integer.parseInt(params.get("fbDocs")), result.docScores.scores.size()); ++i) {
+                    	top_docid.add(result.docScores.getDocid(i));
+                    	top_scores.add(result.docScores.getDocidScore(i));
+                    }
             	}
-            }
-            /*
-            System.out.println("================Before Sorting:");
-            Set set = hm.entrySet();
-            Iterator iterator = set.iterator();
-            while(iterator.hasNext()) {
-            	Map.Entry me = (Map.Entry)iterator.next();
-                System.out.print(me.getKey() + ": ");
-                System.out.println(me.getValue());
-            }
-            */
-            Map<String, Double> map = sortByValues(hm); 
-            System.out.println("================After Sorting:");
-            Set set2 = map.entrySet();
-            Iterator iterator2 = set2.iterator();
-            int i = 0;
-            String exp_qry = queryID + ": #WAND ( ";
-            while(iterator2.hasNext() && i < 10) {
-                 Map.Entry me2 = (Map.Entry)iterator2.next();
-                 System.out.print(me2.getKey() + ": ");
-                 System.out.println(me2.getValue());
-                 
-                 if (me2.getKey().toString().contains(".") || me2.getKey().toString().contains(",")) {
-                	 ++i;
-                 }
-                 else {
-                	 //add to the expanded query
-                	 exp_qry += String.format( "%.4f", me2.getValue());
-                	 exp_qry += " ";
-                	 exp_qry += me2.getKey();
-                	 exp_qry += " ";
-                	 ++i;
-                 }
-            }
-            exp_qry += ")";
-            System.out.println(exp_qry);
-            
-            BufferedWriter writer2 = new BufferedWriter(new FileWriter(new File(
-                                            params.get("fbExpansionQueryFile"))));
-            writer2.write(exp_qry);
-            try {
-                writer2.close();
-            } catch (Exception e) {
-            	
+                HashMap<String, Double> hm = new HashMap<String, Double>();
+                double fbMu = Double.parseDouble(params.get("fbMu"));
+                for (int i = 0; i < top_docid.size(); ++i) {
+                	TermVector tv = new TermVector(top_docid.get(i), "body");
+                	double length_d = (double)QryEval.dls.getDocLength("body", top_docid.get(i));
+                	double length_C = (double)QryEval.READER.getSumTotalTermFreq("body");
+                	for (int j = 1; j < tv.terms.length; ++j) {
+                		String curr_term = tv.stemString(j);
+                		//compute the score
+                		double ctf = (double)tv.totalStemFreq(j);
+                		double p_MLE = ((double)ctf) / ((double)length_C);
+                		double p_td = (tv.stemFreq(j) + fbMu * p_MLE) / (length_d + fbMu);
+                		double p_Id = top_scores.get(i);
+                		double p_tC = Math.log(length_C / ctf);
+                		//update the hashmap
+                		double score = p_td * p_Id * p_tC;
+                		if (hm.containsKey(curr_term)) {
+                			hm.put(curr_term, hm.get(curr_term) + score);
+                		}
+                		else {
+                			hm.put(curr_term, score);
+                		}
+                	}
+                }
+                /*
+                System.out.println("================Before Sorting:");
+                Set set = hm.entrySet();
+                Iterator iterator = set.iterator();
+                while(iterator.hasNext()) {
+                	Map.Entry me = (Map.Entry)iterator.next();
+                    System.out.print(me.getKey() + ": ");
+                    System.out.println(me.getValue());
+                }
+                */
+                /*
+                 * sort the hashmap by score
+                 */
+                Map<String, Double> map = sortByValues(hm); 
+                System.out.println("================After Sorting:");
+                Set set2 = map.entrySet();
+                Iterator iterator2 = set2.iterator();
+                int i = 0;
+                String exp_qry = queryID + ": #WAND ( ";
+                while(iterator2.hasNext() && i < Integer.parseInt(params.get("fbTerms"))) {
+                     Map.Entry me2 = (Map.Entry)iterator2.next();
+                     System.out.print(me2.getKey() + ": ");
+                     System.out.println(me2.getValue());
+                     
+                     /*
+                      * ignore terms that contain "." or ","
+                      */
+                     if (me2.getKey().toString().contains(".") || me2.getKey().toString().contains(",")) {
+                    	 ++i;//haileiy
+                     }
+                     /*
+                      * regular process. Add this term to the expanded query
+                      */
+                     else {
+                    	 //add to the expanded query
+                    	 exp_qry += String.format( "%.4f", me2.getValue());
+                    	 exp_qry += " ";
+                    	 exp_qry += me2.getKey();
+                    	 exp_qry += " ";
+                    	 ++i;
+                     }
+                }
+                exp_qry += ")";
+                System.out.println(exp_qry);
+                
+                /*
+                 * write the expanded query to fbExpansionQueryFile
+                 */
+                BufferedWriter writer2 = new BufferedWriter(new FileWriter(new File(
+                                                params.get("fbExpansionQueryFile"))));
+                writer2.write(exp_qry);
+                try {
+                    writer2.close();
+                } catch (Exception e) {
+                	
+                }
+                /*
+                 * use the expanded query to retrieve
+                 */
+                Qryop qTree;
+                qTree = parseQuery (exp_qry, model);
+                QryResult result = qTree.evaluate (model);
+                
+                System.out.println("new rank begin");
+                if (result != null) {
+                	rank(result);
+                }
+                System.out.println("new rank end");
+                printResults (exp_qry, result, queryID);
+                BufferedWriter writer_expand = null;
+                writer_expand = new BufferedWriter(new FileWriter(new File(
+                                                params.get("trecEvalOutputPath"))));
+                writeResults (writer, queryLine, result, queryID);
+                writer_expand.close();
             }
         } while (queryScanner.hasNext());
         try {
@@ -249,7 +333,13 @@ public class QryEval {
 
         printMemoryUsage(true);
     }
-    private static HashMap<String, Double> sortByValues(HashMap map) { 
+    
+    /**
+     * this function is for sorting hashmap
+     * @param map
+     * @return
+     */
+    private static HashMap<String, Double> sortByValues(HashMap<String, Double> map) { 
         List list = new LinkedList(map.entrySet());
         // Defined Custom Comparator here
         Collections.sort(list, new Comparator() {
