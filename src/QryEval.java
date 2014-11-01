@@ -66,8 +66,10 @@ public class QryEval {
         Map<String, String> params = new HashMap<String, String>();
         Scanner scan = new Scanner(new File(args[0]));
         String line = null;
+        System.out.println("Parameters are: ");
         do {
             line = scan.nextLine();
+            System.out.println(line);
             String[] pair = line.split("=");
             params.put(pair[0].trim(), pair[1].trim());
         } while (scan.hasNext());
@@ -122,42 +124,6 @@ public class QryEval {
             System.exit(1);
         }
 
-        /*
-         *  The code below is an unorganized set of examples that show
-         *  you different ways of accessing the index.  Some of these
-         *  are only useful in HW2 or HW3.
-         */
-
-        /**
-         *  The index is open. Start evaluating queries. The examples
-         *  below show query trees for two simple queries.  These are
-         *  meant to illustrate how query nodes are created and connected.
-         *  However your software will not create queries like this.  Your
-         *  software will use a query parser.  See parseQuery.
-         *
-         *  The general pattern is to tokenize the query term (so that it
-         *  gets converted to lowercase, stopped, stemmed, etc), create a
-         *  Term node to fetch the inverted list, create a Score node to
-         *  convert an inverted list to a score list, evaluate the query,
-         *  and print results.
-         *
-         *  Modify the software so that you read a query from a file,
-         *  parse it, and form the query tree automatically.
-         */
-
-        //  A different way to create the previous query.  This doesn't use
-        //  a stack, but it may make it easier to see how you would parse a
-        //  query with a stack-based architecture.
-
-        //  Using the example query parser.  Notice that this does no
-        //  lexical processing of query terms.  Add that to the query
-        //  parser.
-
-        /**
-         * Used isHardCodeTest as a flag to indicate if this test should read
-         * queries from file or just use the hardcoded query. Very useful for
-         * testing.
-         */
         Scanner queryScanner = new Scanner(new File(params.get("queryFilePath")));
         String queryLine = null;
 
@@ -182,6 +148,7 @@ public class QryEval {
             Qryop qTree;
             qTree = parseQuery (queryLine, model);
             QryResult result = qTree.evaluate (model);
+            
             System.out.println("rank begin");
             if (result != null) {
             	rank(result);
@@ -189,6 +156,60 @@ public class QryEval {
             System.out.println("rank end");
             printResults (queryLine, result, queryID);
             writeResults (writer, queryLine, result, queryID);
+            
+            //query expansion
+            if (params.containsKey("fb") && Boolean.parseBoolean(params.get("fb"))) {
+            	if (params.containsKey("fbInitialRankingFile")) {
+            		//read the file
+            	}
+            }
+            System.out.println("Query expansion");
+            HashMap<String, Double> hm = new HashMap<String, Double>();
+            double fbMu = Double.parseDouble(params.get("fbMu"));
+            for (int i = 0; i < Math.min(Integer.parseInt(params.get("fbDocs")), result.docScores.scores.size()); ++i) {
+            	TermVector tv = new TermVector(result.docScores.getDocid(i), "body");
+            	double length_d = (double)QryEval.dls.getDocLength("body", result.docScores.getDocid(i));
+            	double length_C = (double)QryEval.READER.getSumTotalTermFreq("body");
+            	for (int j = 1; j < tv.terms.length; ++j) {
+            		String curr_term = tv.stemString(j);
+            		//compute the score
+            		double ctf = (double)tv.totalStemFreq(j);
+            		double p_MLE = ((double)ctf) / ((double)length_C);
+            		double p_td = (tv.stemFreq(j) + fbMu * p_MLE) / (length_d + fbMu);
+            		double p_Id = result.docScores.getDocidScore(i);
+            		double p_tC = Math.log(length_C / ctf);
+            		//update the hashmap
+            		double score = p_td * p_Id * p_tC;
+            		if (hm.containsKey(curr_term)) {
+            			hm.put(curr_term, hm.get(curr_term) + score);
+            		}
+            		else {
+            			hm.put(curr_term, score);
+            		}
+            	}
+            }
+            /*
+            System.out.println("================Before Sorting:");
+            Set set = hm.entrySet();
+            Iterator iterator = set.iterator();
+            while(iterator.hasNext()) {
+            	Map.Entry me = (Map.Entry)iterator.next();
+                System.out.print(me.getKey() + ": ");
+                System.out.println(me.getValue());
+            }
+            */
+            Map<String, Double> map = sortByValues(hm); 
+            System.out.println("================After Sorting:");
+            Set set2 = map.entrySet();
+            Iterator iterator2 = set2.iterator();
+            int i = 0;
+            while(iterator2.hasNext() && i < 10) {
+                 Map.Entry me2 = (Map.Entry)iterator2.next();
+                 System.out.print(me2.getKey() + ": ");
+                 System.out.println(me2.getValue());
+                 ++i;
+            }
+            
         } while (queryScanner.hasNext());
         try {
             writer.close();
@@ -205,7 +226,22 @@ public class QryEval {
 
         printMemoryUsage(true);
     }
-
+    private static HashMap<String, Double> sortByValues(HashMap map) { 
+        List list = new LinkedList(map.entrySet());
+        // Defined Custom Comparator here
+        Collections.sort(list, new Comparator() {
+             public int compare(Object o1, Object o2) {
+                return ((Comparable) ((Map.Entry) (o2)).getValue())
+                   .compareTo(((Map.Entry) (o1)).getValue());
+             }
+        });
+        HashMap sortedHashMap = new LinkedHashMap();
+        for (Iterator it = list.iterator(); it.hasNext();) {
+               Map.Entry entry = (Map.Entry) it.next();
+               sortedHashMap.put(entry.getKey(), entry.getValue());
+        } 
+        return sortedHashMap;
+    }
     /**
      * rank the results by score.
      * @param result
