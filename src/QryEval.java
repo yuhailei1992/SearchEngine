@@ -185,20 +185,25 @@ public class QryEval {
             	ArrayList<Double> top_scores = new ArrayList<Double>();//stores the top N Indri scores
             	//if there is initialranking file, fetch the ranking from that file
             	if (params.containsKey("fbInitialRankingFile")) {
-            		//read the file
+            		/*
+            		 * read initialranking file
+            		 */
             		System.out.println("read file");
             		Scanner scan_ranking = new Scanner(new File(params.get("fbInitialRankingFile")));
             		String line_ranking = null;
             		int j = 0;
+            		/*
+            		 * get the top fbDocs documents
+            		 */
                     do {
                     	line_ranking = scan_ranking.nextLine();
                         String[] pair = line_ranking.split(" ");
                         
                         top_docid.add(getInternalDocid(pair[2]));
                         top_scores.add(Double.parseDouble(pair[4]));
-                        System.out.println("The extid is " + pair[2] + "score" + pair[4]);
+                        //System.out.println("The extid is " + pair[2] + "score" + pair[4]);
                         j++;
-                    } while (scan_ranking.hasNext() && j < Integer.parseInt(params.get("fbTerms")));
+                    } while (scan_ranking.hasNext() && j < Integer.parseInt(params.get("fbDocs")));
                     scan_ranking.close();
             	}
             	else {
@@ -218,6 +223,9 @@ public class QryEval {
                     	top_scores.add(result.docScores.getDocidScore(i));
                     }
             	}
+            	/*
+            	 * go through all the top docs, store terms in a hashmap
+            	 */
                 HashMap<String, Double> hm = new HashMap<String, Double>();
                 double fbMu = Double.parseDouble(params.get("fbMu"));
                 for (int i = 0; i < top_docid.size(); ++i) {
@@ -232,8 +240,8 @@ public class QryEval {
                 		double p_td = (tv.stemFreq(j) + fbMu * p_MLE) / (length_d + fbMu);
                 		double p_Id = top_scores.get(i);
                 		double p_tC = Math.log(length_C / ctf);
-                		//update the hashmap
                 		double score = p_td * p_Id * p_tC;
+                		//update the hashmap
                 		if (hm.containsKey(curr_term)) {
                 			hm.put(curr_term, hm.get(curr_term) + score);
                 		}
@@ -258,6 +266,9 @@ public class QryEval {
                 Map<String, Double> map = sortByValues(hm); 
                 System.out.println("================After Sorting:");
                 Set set2 = map.entrySet();
+                /*
+                 * configure the expanded query
+                 */
                 Iterator iterator2 = set2.iterator();
                 int i = 0;
                 String exp_qry = queryID + ": #WAND ( ";
@@ -290,11 +301,11 @@ public class QryEval {
                 /*
                  * write the expanded query to fbExpansionQueryFile
                  */
-                BufferedWriter writer2 = new BufferedWriter(new FileWriter(new File(
+                BufferedWriter writer_expand = new BufferedWriter(new FileWriter(new File(
                                                 params.get("fbExpansionQueryFile"))));
-                writer2.write(exp_qry);
+                writer_expand.write(exp_qry);
                 try {
-                    writer2.close();
+                	writer_expand.close();
                 } catch (Exception e) {
                 	
                 }
@@ -311,11 +322,11 @@ public class QryEval {
                 }
                 System.out.println("new rank end");
                 printResults (exp_qry, result, queryID);
-                BufferedWriter writer_expand = null;
-                writer_expand = new BufferedWriter(new FileWriter(new File(
+                BufferedWriter writer_expand_res = null;
+                writer_expand_res = new BufferedWriter(new FileWriter(new File(
                                                 params.get("trecEvalOutputPath"))));
-                writeResults (writer, queryLine, result, queryID);
-                writer_expand.close();
+                writeResults (writer_expand_res, queryLine, result, queryID);
+                writer_expand_res.close();
             }
         } while (queryScanner.hasNext());
         try {
@@ -331,7 +342,7 @@ public class QryEval {
          *  testing infrastructure to work on QryEval.
          */
 
-        printMemoryUsage(true);
+        printMemoryUsage(false);
     }
     
     /**
@@ -355,6 +366,7 @@ public class QryEval {
         } 
         return sortedHashMap;
     }
+	
     /**
      * rank the results by score.
      * @param result
