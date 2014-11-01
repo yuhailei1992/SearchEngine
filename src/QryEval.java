@@ -10,7 +10,6 @@
  */
 
 import java.io.*;
-import java.text.DecimalFormat;
 import java.util.*;
 
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents;
@@ -223,47 +222,98 @@ public class QryEval {
                     	top_scores.add(result.docScores.getDocidScore(i));
                     }
             	}
+            	
             	/*
-            	 * go through all the top docs, store terms in a hashmap
+            	 * HashMaps:
+            	 * hm stores all the terms along with their ctf
+            	 * hm2 is for later use. It contains terms with their score
+            	 * doc_hm stores terms in each document
             	 */
                 HashMap<String, Double> hm = new HashMap<String, Double>();
+                HashMap<String, Double> hm2 = new HashMap<String, Double>();
+                ArrayList<HashMap<String, Double>> doc_hm = new ArrayList<HashMap<String, Double>>();
+                /*
+                 * prepare some global variables that remains constant for any document, any term
+                 */
                 double fbMu = Double.parseDouble(params.get("fbMu"));
+                double length_C = (double)QryEval.READER.getSumTotalTermFreq("body");
+                
+                /*
+            	 * first loop: go through all the top docs, store terms and their ctf in a hashmap
+            	 */
                 for (int i = 0; i < top_docid.size(); ++i) {
                 	TermVector tv = new TermVector(top_docid.get(i), "body");
-                	double length_d = (double)QryEval.dls.getDocLength("body", top_docid.get(i));
-                	double length_C = (double)QryEval.READER.getSumTotalTermFreq("body");
+                	/*
+                	 * temp_hm is a temporary hashmap that stores terms with their tf. 
+                	 * temp_hm will be added to doc_hm
+                	 */
+                	HashMap<String, Double> temp_hm = new HashMap<String, Double>();
+                	/*
+                	 * jump over the first element in tv
+                	 */
                 	for (int j = 1; j < tv.terms.length; ++j) {
+                		
                 		String curr_term = tv.stemString(j);
-                		//compute the score
+                		/*
+                		 * store term with tf in temp_hm
+                		 */
+                		temp_hm.put(curr_term, (double)tv.stemFreq(j));
+                		/*
+                		 * then store term with ctf in hm
+                		 */
                 		double ctf = (double)tv.totalStemFreq(j);
-                		double p_MLE = ((double)ctf) / ((double)length_C);
-                		double p_td = (tv.stemFreq(j) + fbMu * p_MLE) / (length_d + fbMu);
-                		double p_Id = top_scores.get(i);
-                		double p_tC = Math.log(length_C / ctf);
-                		double score = p_td * p_Id * p_tC;
-                		//update the hashmap
                 		if (hm.containsKey(curr_term)) {
-                			hm.put(curr_term, hm.get(curr_term) + score);
+                			//do nothing, cause ctf is constant for any document
                 		}
                 		else {
-                			hm.put(curr_term, score);
+                			hm.put(curr_term, ctf);
                 		}
                 	}
+                	/*
+                	 * add the temp hm to the doc_hm
+                	 */
+                	doc_hm.add(temp_hm);
                 }
+                
                 /*
-                System.out.println("================Before Sorting:");
-                Set set = hm.entrySet();
-                Iterator iterator = set.iterator();
-                while(iterator.hasNext()) {
-                	Map.Entry me = (Map.Entry)iterator.next();
-                    System.out.print(me.getKey() + ": ");
-                    System.out.println(me.getValue());
+                 * loop2: go throught the hashmap again and calculate the scores
+                 */
+                Iterator it = hm.entrySet().iterator();
+                while (it.hasNext()) {
+                    Map.Entry pairs = (Map.Entry)it.next();
+                    double score = 0.0;
+                    String curr_term = (String)pairs.getKey();
+                    /*
+                     * traverse all the documents, compute score for a term
+                     * if the term appeared in a document, then simply calculate its score
+                     * else, compute the default score
+                     */
+                    for (int i = 0; i < top_docid.size(); ++i) {
+                    	
+                    	double length_d = (double)QryEval.dls.getDocLength("body", top_docid.get(i));
+                    	
+                		double ctf = hm.get(curr_term);
+                		// smoothing factor
+                		double p_MLE = ctf / length_C;
+                		/*
+                		 * the default tf is 0. If the term appeared in a document, then the tf is not zero
+                		 */
+                		double curr_tf = 0.0;
+                		if (doc_hm.get(i).containsKey(curr_term)) {
+                			curr_tf = doc_hm.get(i).get(curr_term);
+                		}
+                		
+                		double p_td = (curr_tf + fbMu * p_MLE) / (length_d + fbMu);
+                		double p_Id = top_scores.get(i);
+                		double p_tC = Math.log(length_C / ctf);
+                		score += p_td * p_Id * p_tC;
+                    	hm2.put(curr_term, score);
+                    }
                 }
-                */
                 /*
                  * sort the hashmap by score
                  */
-                Map<String, Double> map = sortByValues(hm); 
+                Map<String, Double> map = sortByValues(hm2); 
                 System.out.println("================After Sorting:");
                 Set set2 = map.entrySet();
                 /*
