@@ -1,0 +1,1 @@
+10: #WAND ( 0.3426 cheap 0.2319 internet 0.1548 host 0.0954 web 0.0552 domain 0.0404 dial 0.0382 provider 0.0380 service 0.0361 fast 0.0309 cable )

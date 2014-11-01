@@ -10,6 +10,7 @@
  */
 
 import java.io.*;
+import java.text.DecimalFormat;
 import java.util.*;
 
 import org.apache.lucene.analysis.Analyzer.TokenStreamComponents;
@@ -203,13 +204,35 @@ public class QryEval {
             Set set2 = map.entrySet();
             Iterator iterator2 = set2.iterator();
             int i = 0;
+            String exp_qry = queryID + ": #WAND ( ";
             while(iterator2.hasNext() && i < 10) {
                  Map.Entry me2 = (Map.Entry)iterator2.next();
                  System.out.print(me2.getKey() + ": ");
                  System.out.println(me2.getValue());
-                 ++i;
+                 
+                 if (me2.getKey().toString().contains(".") || me2.getKey().toString().contains(",")) {
+                	 ++i;
+                 }
+                 else {
+                	 //add to the expanded query
+                	 exp_qry += String.format( "%.4f", me2.getValue());
+                	 exp_qry += " ";
+                	 exp_qry += me2.getKey();
+                	 exp_qry += " ";
+                	 ++i;
+                 }
             }
+            exp_qry += ")";
+            System.out.println(exp_qry);
             
+            BufferedWriter writer2 = new BufferedWriter(new FileWriter(new File(
+                                            params.get("fbExpansionQueryFile"))));
+            writer2.write(exp_qry);
+            try {
+                writer2.close();
+            } catch (Exception e) {
+            	
+            }
         } while (queryScanner.hasNext());
         try {
             writer.close();
