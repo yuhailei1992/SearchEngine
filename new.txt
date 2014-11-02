@@ -1,0 +1,57 @@
+HTTP/1.1 200 OK
+Connection: close
+Date: Sun, 02 Nov 2014 20:45:02 GMT
+Server: Apache/2.2.3 (CentOS)
+Content-Type: text/html; charset=UTF-8
+Client-Date: Sun, 02 Nov 2014 20:45:10 GMT
+Client-Peer: 127.0.0.1:5001
+Client-Response-Num: 1
+Client-Transfer-Encoding: chunked
+Title: The trec_eval Service
+
+<html>
+<head><title>The trec_eval Service</title></head>
+<body>
+<h2>trec_eval Results</h2>---- Your file HW1-queries-UB.teIn is uploaded ----
+
+num_q          	all	1
+num_ret        	all	100
+num_rel        	all	162
+num_rel_ret    	all	0
+map            	all	0.0000
+gm_ap          	all	0.0000
+R-prec         	all	0.0000
+bpref          	all	0.0000
+recip_rank     	all	0.0000
+ircl_prn.0.00  	all	0.0000
+ircl_prn.0.10  	all	0.0000
+ircl_prn.0.20  	all	0.0000
+ircl_prn.0.30  	all	0.0000
+ircl_prn.0.40  	all	0.0000
+ircl_prn.0.50  	all	0.0000
+ircl_prn.0.60  	all	0.0000
+ircl_prn.0.70  	all	0.0000
+ircl_prn.0.80  	all	0.0000
+ircl_prn.0.90  	all	0.0000
+ircl_prn.1.00  	all	0.0000
+P5             	all	0.0000
+P10            	all	0.0000
+P15            	all	0.0000
+P20            	all	0.0000
+P30            	all	0.0000
+P100           	all	0.0000
+P200           	all	0.0000
+P500           	all	0.0000
+P1000          	all	0.0000
+
+
+---- Done ----
+
+
+
+
+<hr>
+Updated on June 13, 2014
+<address><a href="http://www.cs.cmu.edu/~callan/">Jamie Callan</a></address>
+</body>
+</html>

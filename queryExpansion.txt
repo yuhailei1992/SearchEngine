@@ -1,1 +1,1 @@
-10: #WAND ( 0.7513 avp 0.1201 newsletter 0.0809 tour 0.0767 antiviru 0.0469 croc 0.0447 event 0.0426 2008 0.0397 2007 0.0375 season 0.0357 onsite )
+12: #WAND ( 0.7513 avp 0.1201 newsletter 0.0809 tour 0.0767 antiviru 0.0469 croc 0.0447 event 0.0426 2008 0.0397 2007 0.0375 season 0.0357 onsite )

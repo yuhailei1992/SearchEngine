@@ -392,7 +392,7 @@ public class QryEval {
          *  testing infrastructure to work on QryEval.
          */
 
-        printMemoryUsage(false);
+        printMemoryUsage(true);
     }
     
     /**
