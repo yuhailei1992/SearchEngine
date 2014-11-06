@@ -107,14 +107,17 @@ public class QryopSlAnd extends QryopSl {
             	if (ptr[i].nextDoc < ptr[i].scoreList.scores.size()
             			&& ptr[i].scoreList.getDocid(ptr[i].nextDoc) == temp_min_docid) {
             		temp_scores[i] = ptr[i].scoreList.getDocidScore(ptr[i].nextDoc);
+            		//System.out.println("doc " + i + ": " + temp_scores[i]);
             		ptr[i].nextDoc++;
             	}
             	else {
             		temp_scores[i] = ((QryopSl)this.args.get(i)).getDefaultScore(r, temp_min_docid);
+            		//System.out.println("doc " + i + " default : " + temp_scores[i]);
             	}
             	score *= Math.pow(temp_scores[i], (1.0/num_of_lists));
             }
             //System.out.println(score);
+            //System.out.println("score is " + score);
 
             result.docScores.add(temp_min_docid, score);
         }
@@ -216,6 +219,7 @@ public class QryopSlAnd extends QryopSl {
     		}
     		//System.out.println(Math.pow(score, (1.0/(double)num_of_lists)));
     		return Math.pow(score, (1.0/(double)num_of_lists));
+    		//System.out.println("score is " + score);
     	}
     	return 0.0;
     }

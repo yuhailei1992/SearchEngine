@@ -51,8 +51,16 @@ public class QryopIlNear extends QryopIl {
     public QryResult evaluateBoolean (RetrievalModel r) throws IOException {
         // Initialization
 		allocDaaTPtrs (r);
-
+		
+		
 		QryResult result = new QryResult();
+		if(this.daatPtrs.size()==0){
+			return result;
+		}
+		else if(this.daatPtrs.size()==1){
+			result.invertedList = this.daatPtrs.get(0).invList;
+			return result;
+		}
 		/*
 		 * Store daatPtrs.get(0).invList in tempList
 		 */
@@ -132,7 +140,6 @@ public class QryopIlNear extends QryopIl {
 			if (i == args.size()-1) {
 				result.invertedList = resList;
 				result.invertedList.field = currList.field;
-				//result.invertedList.ctf = currList.ctf;
 			}
 		}
 		freeDaaTPtrs();

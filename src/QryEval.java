@@ -70,10 +70,8 @@ public class QryEval {
         Map<String, String> params = new HashMap<String, String>();
         Scanner scan = new Scanner(new File(args[0]));
         String line = null;
-        System.out.println("Parameters are: ");
         do {
             line = scan.nextLine();
-            System.out.println(line);
             String[] pair = line.split("=");
             params.put(pair[0].trim(), pair[1].trim());
         } while (scan.hasNext());
@@ -143,12 +141,22 @@ public class QryEval {
         BufferedWriter writer = null;
         writer = new BufferedWriter(new FileWriter(new File(
                                         params.get("trecEvalOutputPath"))));
+        if (params.containsKey("fbExpansionQueryFile")) {
+        		File file = new File(params.get("fbExpansionQueryFile"));
+        		if(file.delete()){
+        			System.out.println(">> Original expansion file, " + file.getName() + ", is deleted!");
+        		}else{
+        			System.out.println("Delete operation failed.");
+        		}
+        }
+   	 
+        ////////////////////////////////////////MODIFY
         /*
          * iteratively process all the queries
          */
         do {
             queryLine = queryScanner.nextLine();
-            System.out.println("query is " + queryLine);
+            System.out.println(">> Original query is " + queryLine);
             String[] parts = queryLine.split(":");
             int queryID = 0;
             //if the query line doesn't contain a queryID
@@ -166,20 +174,25 @@ public class QryEval {
             // no query expansion
             if (!params.containsKey("fb") || !Boolean.parseBoolean(params.get("fb"))) {
             	// use the query to retrieve documents
-            	System.out.println("directly retrieve");
+            	System.out.println(">> No expansion, directly retrieve instead");
             	Qryop qTree;
                 qTree = parseQuery (queryLine, model);
                 QryResult result = qTree.evaluate (model);
                 
-                System.out.println("rank begin");
+                System.out.println(">> Rank begin");
                 if (result != null) {
                 	rank(result);
                 }
-                System.out.println("rank end");
+                System.out.println(">> Rank end");
                 printResults (queryLine, result, queryID);
                 writeResults (writer, queryLine, result, queryID);
             }
             else {//with query expansion
+            	/*
+            	 * first, delete the old expand query file
+            	 * 
+            	 */
+            	
             	ArrayList<Integer> top_docid = new ArrayList<Integer>();//stores the top N document ids
             	ArrayList<Double> top_scores = new ArrayList<Double>();//stores the top N Indri scores
             	//if there is initialranking file, fetch the ranking from that file
@@ -187,7 +200,7 @@ public class QryEval {
             		/*
             		 * read initialranking file
             		 */
-            		System.out.println("read file");
+            		System.out.println(">> Reading file from reference system");
             		Scanner scan_ranking = new Scanner(new File(params.get("fbInitialRankingFile")));
             		String line_ranking = null;
             		int j = 0;
@@ -196,26 +209,28 @@ public class QryEval {
             		 */
                     do {
                     	line_ranking = scan_ranking.nextLine();
-                        String[] pair = line_ranking.split(" ");
-                        
+                    	String[] pair = line_ranking.split(" ");
+                    	if (Integer.parseInt(pair[0]) != queryID) {
+                    		continue;
+                    	}
                         top_docid.add(getInternalDocid(pair[2]));
                         top_scores.add(Double.parseDouble(pair[4]));
-                        //System.out.println("The extid is " + pair[2] + "score" + pair[4]);
+                        System.out.println("The extid is " + pair[2] + "score" + pair[4]);
                         j++;
                     } while (scan_ranking.hasNext() && j < Integer.parseInt(params.get("fbDocs")));
                     scan_ranking.close();
             	}
             	else {
-            		System.out.println("query expansion");
+            		System.out.println(">> Query expansion without reference system");
             		Qryop qTree;
                     qTree = parseQuery (queryLine, model);
                     QryResult result = qTree.evaluate (model);
                     
-                    System.out.println("rank begin");
+                    System.out.println(">> Rank begin");
                     if (result != null) {
                     	rank(result);
                     }
-                    System.out.println("rank end");
+                    System.out.println(">> Rank end");
                     //query expansion
                     for (int i = 0; i < Math.min(Integer.parseInt(params.get("fbDocs")), result.docScores.scores.size()); ++i) {
                     	top_docid.add(result.docScores.getDocid(i));
@@ -314,18 +329,18 @@ public class QryEval {
                  * sort the hashmap by score
                  */
                 Map<String, Double> map = sortByValues(hm2); 
-                System.out.println("================After Sorting:");
+                
                 Set set2 = map.entrySet();
                 /*
                  * configure the expanded query
                  */
                 Iterator iterator2 = set2.iterator();
                 int i = 0;
-                String exp_qry = queryID + ": #WAND ( ";
+                String exp_qry = "#WAND ( ";
                 while(iterator2.hasNext() && i < Integer.parseInt(params.get("fbTerms"))) {
                      Map.Entry me2 = (Map.Entry)iterator2.next();
-                     System.out.print(me2.getKey() + ": ");
-                     System.out.println(me2.getValue());
+                     //System.out.print(me2.getKey() + ": ");
+                     //System.out.println(me2.getValue());
                      
                      /*
                       * ignore terms that contain "." or ","
@@ -338,7 +353,8 @@ public class QryEval {
                       */
                      else {
                     	 //add to the expanded query
-                    	 exp_qry += String.format( "%.4f", me2.getValue());
+                    	 //exp_qry += String.format( "%.4f", me2.getValue());
+                    	 exp_qry += me2.getValue();
                     	 exp_qry += " ";
                     	 exp_qry += me2.getKey();
                     	 exp_qry += " ";
@@ -346,43 +362,45 @@ public class QryEval {
                      }
                 }
                 exp_qry += ")";
-                System.out.println(exp_qry);
-                
+                //System.out.println(exp_qry);
+                String exp_qry_with_qryid = queryID + ":" + exp_qry;
                 /*
                  * write the expanded query to fbExpansionQueryFile
                  */
                 BufferedWriter writer_expand = new BufferedWriter(new FileWriter(new File(
-                                                params.get("fbExpansionQueryFile"))));
-                writer_expand.write(exp_qry);
+                                                params.get("fbExpansionQueryFile")), true));
+                writer_expand.write(exp_qry_with_qryid);
+                writer_expand.write("\n");
                 try {
                 	writer_expand.close();
                 } catch (Exception e) {
-                	
+                	//
                 }
                 /*
                  * use the expanded query to retrieve
                  */
+                double orig_weight = Double.parseDouble(params.get("fbOrigWeight"));
+                double exp_weight = 1.0 - orig_weight;
+                String combined_query = "#WAND ( " + orig_weight + " #AND (" + queryLine + " ) " + exp_weight + " " + exp_qry + ")";
+                System.out.println(">> RETRIEVE WITH  " + combined_query);
                 Qryop qTree;
-                qTree = parseQuery (exp_qry, model);
+                qTree = parseQuery (combined_query, model);
                 QryResult result = qTree.evaluate (model);
                 
-                System.out.println("new rank begin");
+                System.out.println(">> New rank begin");
                 if (result != null) {
                 	rank(result);
                 }
-                System.out.println("new rank end");
-                printResults (exp_qry, result, queryID);
-                BufferedWriter writer_expand_res = null;
-                writer_expand_res = new BufferedWriter(new FileWriter(new File(
-                                                params.get("trecEvalOutputPath"))));
-                writeResults (writer_expand_res, queryLine, result, queryID);
-                writer_expand_res.close();
+                System.out.println(">> New rank end");
+                printResults (combined_query, result, queryID);
+                writeResults (writer, queryLine, result, queryID);
             }
         } while (queryScanner.hasNext());
         try {
             writer.close();
             queryScanner.close();
         } catch (Exception e) {
+        	
         }
         
         /*
@@ -400,6 +418,7 @@ public class QryEval {
      * @param map
      * @return
      */
+    
     private static HashMap<String, Double> sortByValues(HashMap<String, Double> map) { 
         List list = new LinkedList(map.entrySet());
         // Defined Custom Comparator here
@@ -569,7 +588,8 @@ public class QryEval {
                     break;
                 Qryop arg = currentOp;
                 currentOp = stack.peek();
-                currentOp.add(arg);
+                if(arg.args.size()!=0)
+                	currentOp.add(arg);
             } else {
                 // split the token into term and field
             	if (isWeight == 1 && (currentOp instanceof QryopSlWAnd || currentOp instanceof QryopSlWSum)) {
