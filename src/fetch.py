@@ -32,13 +32,14 @@ P30AllPattern = re.compile(r'^(?i)P30\s.*all.*')
 
 #initial = 'fbMu=0'
 #replacement = ['fbMu=0','fbMu=2500','fbMu=5000','fbMu=7500','fbMu=10000']
-#replacement = ['fbmu=0']
 
-initial = 'fbTerms=5'
-replacement = ['fbTerms=5','fbTerms=10','fbTerms=20','fbTerms=30','fbTerms=40','fbTerms=50']
+#initial = 'fbTerms=5'
+#replacement = ['fbTerms=5','fbTerms=10','fbTerms=20','fbTerms=30','fbTerms=40','fbTerms=50']
 
 #initial = 'fbOrigWeight=0.0'
 #replacement = ['fbOrigWeight=0.0','fbOrigWeight=0.2','fbOrigWeight=0.4','fbOrigWeight=0.6','fbOrigWeight=0.8','fbOrigWeight=1.0']
+initial = 'fbMu=0'
+replacement = ['fbMu=0']
 
 for r in replacement:
 	parameter = fileinput.input('/Users/Caesar/Documents/workspace/SearchEngineLab1/parameterFile', inplace=1)

@@ -150,7 +150,6 @@ public class QryEval {
         		}
         }
    	 
-        ////////////////////////////////////////MODIFY
         /*
          * iteratively process all the queries
          */
@@ -293,9 +292,10 @@ public class QryEval {
                 /*
                  * loop2: go throught the hashmap again and calculate the scores
                  */
+                //top_scores.
                 Iterator it = hm.entrySet().iterator();
                 while (it.hasNext()) {
-                    Map.Entry pairs = (Map.Entry)it.next();
+                    Map.Entry<String, Double> pairs = (Map.Entry)it.next();
                     double score = 0.0;
                     String curr_term = (String)pairs.getKey();
                     /*
@@ -322,8 +322,10 @@ public class QryEval {
                 		double p_Id = top_scores.get(i);
                 		double p_tC = Math.log(length_C / ctf);
                 		score += p_td * p_Id * p_tC;
-                    	hm2.put(curr_term, score);
+                		
+                    	//hm2.put(curr_term, score);
                     }
+                    hm2.put(curr_term, score);
                 }
                 /*
                  * sort the hashmap by score
@@ -403,13 +405,6 @@ public class QryEval {
         	
         }
         
-        /*
-         *  Create the trec_eval output.  Your code should write to the
-         *  file specified in the parameter file, and it should write the
-         *  results that you retrieved above.  This code just allows the
-         *  testing infrastructure to work on QryEval.
-         */
-
         printMemoryUsage(true);
     }
     
@@ -420,7 +415,7 @@ public class QryEval {
      */
     
     private static HashMap<String, Double> sortByValues(HashMap<String, Double> map) { 
-        List list = new LinkedList(map.entrySet());
+        List<Double> list = new LinkedList(map.entrySet());
         // Defined Custom Comparator here
         Collections.sort(list, new Comparator() {
              public int compare(Object o1, Object o2) {
@@ -428,13 +423,14 @@ public class QryEval {
                    .compareTo(((Map.Entry) (o1)).getValue());
              }
         });
-        HashMap sortedHashMap = new LinkedHashMap();
+        HashMap<String, Double> sortedHashMap = new LinkedHashMap<String, Double>();
         for (Iterator it = list.iterator(); it.hasNext();) {
                Map.Entry entry = (Map.Entry) it.next();
-               sortedHashMap.put(entry.getKey(), entry.getValue());
+               sortedHashMap.put((String)entry.getKey(), (Double)entry.getValue());
         } 
         return sortedHashMap;
     }
+    
 	
     /**
      * rank the results by score.
@@ -446,7 +442,7 @@ public class QryEval {
         for (ScoreList.ScoreListEntry p : result.docScores.scores) {
             p.setExternalID(getExternalDocid(p.docid));
         }
-        //then,  rank the results
+        //then,  rank the results by score
         result.docScores.sortByScore();
     }
 

@@ -1,0 +1,85 @@
+fbMu=0
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.1800
+0.2500
+0.2833
+0.1373
+8/2
+ 
+fbMu=2500
+10	lose
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	equal
+149	win
+190	lose
+0.1900
+0.2500
+0.2867
+0.1326
+6/3
+ 
+fbMu=5000
+10	lose
+12	lose
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.1900
+0.2450
+0.2867
+0.1320
+6/4
+ 
+fbMu=7500
+10	lose
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.2100
+0.2450
+0.2900
+0.1301
+7/3
+ 
+fbMu=10000
+10	lose
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.2100
+0.2600
+0.2967
+0.1324
+8/2
+ 

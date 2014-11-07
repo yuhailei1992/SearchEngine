@@ -1,0 +1,102 @@
+fbDocs=10
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.2300
+0.3300
+0.3233
+0.1569
+10/0
+ 
+fbDocs=20
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.2400
+0.3250
+0.3100
+0.1501
+10/0
+ 
+fbDocs=30
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.2300
+0.3350
+0.3200
+0.1480
+10/0
+ 
+fbDocs=40
+10	lose
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.2700
+0.3250
+0.3167
+0.1463
+9/1
+ 
+fbDocs=50
+10	lose
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.2700
+0.3300
+0.3133
+0.1497
+9/1
+ 
+fbDocs=100
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.2900
+0.3350
+0.3167
+0.1483
+10/0
+ 

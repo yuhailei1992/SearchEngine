@@ -1,0 +1,273 @@
+fbOrigWeight=0.0
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	lose
+102	lose
+149	win
+190	win
+0.2900
+0.3350
+0.3567
+0.1731
+8/2
+ 
+fbOrigWeight=0.2
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	lose
+149	win
+190	win
+0.2700
+0.3400
+0.3600
+0.1673
+9/1
+ 
+fbOrigWeight=0.4
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.2500
+0.3250
+0.3400
+0.1602
+10/0
+ 
+fbOrigWeight=0.6
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.2500
+0.3100
+0.3267
+0.1525
+10/0
+ 
+fbOrigWeight=0.8
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.2400
+0.2900
+0.3333
+0.1358
+9/1
+ 
+fbOrigWeight=1.0
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.2400
+0.2750
+0.2967
+0.1275
+9/1
+ 
+fbOrigWeight=0.0
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	lose
+149	win
+190	win
+0.1900
+0.2400
+0.2800
+0.1318
+8/2
+ 
+fbOrigWeight=0.2
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	lose
+149	win
+190	win
+0.2000
+0.2450
+0.2933
+0.1352
+8/2
+ 
+fbOrigWeight=0.4
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	equal
+149	win
+190	win
+0.1800
+0.2450
+0.2967
+0.1372
+8/1
+ 
+fbOrigWeight=0.6
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.1800
+0.2650
+0.2700
+0.1361
+9/1
+ 
+fbOrigWeight=0.8
+fbOrigWeight=0.0
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	lose
+149	win
+190	lose
+0.2000
+0.2250
+0.2600
+0.1369
+7/3
+ 
+fbOrigWeight=0.2
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.2000
+0.2100
+0.2867
+0.1391
+9/1
+ 
+fbOrigWeight=0.4
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	win
+0.1900
+0.2350
+0.2800
+0.1406
+10/0
+ 
+fbOrigWeight=0.6
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.1900
+0.2650
+0.2767
+0.1372
+9/1
+ 
+fbOrigWeight=0.8
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.2100
+0.2650
+0.2833
+0.1288
+9/1
+ 
+fbOrigWeight=1.0
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	win
+102	win
+149	win
+190	lose
+0.2400
+0.2750
+0.2967
+0.1275
+9/1
+ 

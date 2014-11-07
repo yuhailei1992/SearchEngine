@@ -106,6 +106,15 @@ public class QryopSlWAnd extends QryopSl {
             //now we have the min_docid
             double temp_scores[] = new double[num_of_lists];
             double score = 1.0;
+            
+            double total_weight = 0.0;
+            for (int i = 0; i < this.weight.size(); ++i){
+                total_weight += this.weight.get(i);
+            }
+            if (total_weight == 0.0) {
+            	total_weight = 1;
+            }
+            //System.out.println(total_weight);
             for (int i = 0; i < num_of_lists; ++i) {
             	if (ptr[i].nextDoc < ptr[i].scoreList.scores.size()
             			&& ptr[i].scoreList.getDocid(ptr[i].nextDoc) == temp_min_docid) {
@@ -115,7 +124,7 @@ public class QryopSlWAnd extends QryopSl {
             	else {
             		temp_scores[i] = ((QryopSl)this.args.get(i)).getDefaultScore(r, temp_min_docid);
             	}
-            	score *= Math.pow(temp_scores[i], (this.weight.get(i)));
+            	score *= Math.pow(temp_scores[i], ((this.weight.get(i))/total_weight));
             }
             result.docScores.add(temp_min_docid, score);
         }
@@ -212,12 +221,19 @@ public class QryopSlWAnd extends QryopSl {
     	if (r instanceof RetrievalModelIndri) {
     		double score = 1.0;
     		int num_of_lists = this.args.size();
-    		//System.out.println("numoflists " + num_of_lists);
+    		double total_weight = 0.0;
+            for (int i = 0; i < this.weight.size(); ++i){
+                total_weight += this.weight.get(i);
+            }
+            if (total_weight == 0.0) {
+            	total_weight = 1;
+            }
+            //System.out.println(total_weight);
     		for (int i = 0; i < num_of_lists; ++i) {
-    			score *= ((QryopSl)this.args.get(i)).getDefaultScore(r, docid);
+    			score *= Math.pow(((QryopSl)this.args.get(i)).getDefaultScore(r, docid), (this.weight.get(i)/total_weight));
     		}
-    		//System.out.println(Math.pow(score, (1.0/(double)num_of_lists)));
-    		return Math.pow(score, (1.0/(double)num_of_lists));
+    		return score;
+    		//return Math.pow(score, (1.0/(double)num_of_lists));
     	}
     	return 0.0;
     }
