@@ -191,7 +191,6 @@ public class QryEval {
             	 * first, delete the old expand query file
             	 * 
             	 */
-            	
             	ArrayList<Integer> top_docid = new ArrayList<Integer>();//stores the top N document ids
             	ArrayList<Double> top_scores = new ArrayList<Double>();//stores the top N Indri scores
             	//if there is initialranking file, fetch the ranking from that file
@@ -323,7 +322,6 @@ public class QryEval {
                 		double p_tC = Math.log(length_C / ctf);
                 		score += p_td * p_Id * p_tC;
                 		
-                    	//hm2.put(curr_term, score);
                     }
                     hm2.put(curr_term, score);
                 }
@@ -341,8 +339,6 @@ public class QryEval {
                 String exp_qry = "#WAND ( ";
                 while(iterator2.hasNext() && i < Integer.parseInt(params.get("fbTerms"))) {
                      Map.Entry me2 = (Map.Entry)iterator2.next();
-                     //System.out.print(me2.getKey() + ": ");
-                     //System.out.println(me2.getValue());
                      
                      /*
                       * ignore terms that contain "." or ","
@@ -364,7 +360,6 @@ public class QryEval {
                      }
                 }
                 exp_qry += ")";
-                //System.out.println(exp_qry);
                 String exp_qry_with_qryid = queryID + ":" + exp_qry;
                 /*
                  * write the expanded query to fbExpansionQueryFile
@@ -413,15 +408,15 @@ public class QryEval {
      * @param map
      * @return
      */
-    
+    @SuppressWarnings("unchecked")
     private static HashMap<String, Double> sortByValues(HashMap<String, Double> map) { 
         List<Double> list = new LinkedList(map.entrySet());
         // Defined Custom Comparator here
         Collections.sort(list, new Comparator() {
-             public int compare(Object o1, Object o2) {
-                return ((Comparable) ((Map.Entry) (o2)).getValue())
-                   .compareTo(((Map.Entry) (o1)).getValue());
-             }
+            public int compare(Object o1, Object o2) {
+               return ((Comparable) ((Map.Entry) (o2)).getValue())
+                  .compareTo(((Map.Entry) (o1)).getValue());
+            }
         });
         HashMap<String, Double> sortedHashMap = new LinkedHashMap<String, Double>();
         for (Iterator it = list.iterator(); it.hasNext();) {
@@ -430,7 +425,6 @@ public class QryEval {
         } 
         return sortedHashMap;
     }
-    
 	
     /**
      * rank the results by score.
@@ -542,7 +536,6 @@ public class QryEval {
             		continue;
             	}
             	isWeight = 1;
-            	//continue;
                 // Ignore most delimiters.
             } else if (token.equalsIgnoreCase("#and")) {
                 currentOp = new QryopSlAnd();
@@ -584,7 +577,7 @@ public class QryEval {
                     break;
                 Qryop arg = currentOp;
                 currentOp = stack.peek();
-                if(arg.args.size()!=0)
+                if(arg.args.size() != 0)
                 	currentOp.add(arg);
             } else {
                 // split the token into term and field

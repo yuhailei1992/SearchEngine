@@ -1,10 +1,2 @@
-10:#WAND(0.7 #AND( cheap internet ) 0.2 #AND( #NEAR/1( cheap internet ) ) 0.1 #AND( #WINDOW/8( cheap internet ) ) )
-12:#AND(djs)
-26:#WAND(0.7 #AND( lower heart rate ) 0.2 #AND( #NEAR/1( lower heart rate ) ) 0.1 #AND( #WINDOW/12( lower heart rate ) ) )
-29:#WAND(0.7 #AND( ps 2 game ) 0.2 #AND( #NEAR/1( ps 2 game ) ) 0.1 #AND( #WINDOW/12( ps 2 game ) ) )
-33: #WAND(0.7 #AND( elliptical trainer ) 0.2 #AND( #NEAR/1( elliptical trainer ) ) 0.1 #AND( #WINDOW/8( elliptical trainer ) ) )
-52:#AND(avp)
-71:#WAND(0.7 #AND( living in india ) 0.2 #AND( #NEAR/1( living in india ) ) 0.1 #AND( #WINDOW/12( living in india ) ) )
-102:#WAND(0.7 #AND( fickle creek farm ) 0.2 #AND( #NEAR/1( fickle creek farm ) ) 0.1 #AND( #WINDOW/12( fickle creek farm ) ) )
-149:#WAND(0.7 #AND( uplift at yellowstone national park ) 0.2 #AND( #NEAR/1( uplift at yellowstone national park ) ) 0.1 #AND( #WINDOW/20( uplift at yellowstone national park ) ) )
-190:#WAND(0.7 #AND(brooks brothers clearance ) 0.2 #AND( #NEAR/1( brooks brothers clearance ) ) 0.1 #AND( #WINDOW/12( brooks brothers clearance ) ) )
+30:diabetes educate
+40:michwork
