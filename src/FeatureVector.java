@@ -78,7 +78,7 @@ public class FeatureVector {
 		ArrayList<Double> res = new ArrayList<Double>();
 		// document reader
 		Document doc = QryEval.READER.document(docid);
-		
+		double default_score = Double.NaN;
 		// 0, spam score
 		if (mask[0])
 		{
@@ -87,7 +87,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 1, url depth
@@ -97,7 +97,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 2, wiki score
@@ -107,7 +107,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		// 3, pagerank
 		if (mask[3])
@@ -119,12 +119,12 @@ public class FeatureVector {
 			}
 			else
 			{
-				res.add(0.0);//TODO normalize
+				res.add(default_score);//TODO normalize
 			}
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		boolean flag = true;
@@ -145,7 +145,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 5, indri, body
@@ -156,7 +156,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 6, term overlap body
@@ -167,7 +167,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		tv = null;
@@ -188,7 +188,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 8, indri, title
@@ -199,7 +199,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 9, term overlap title
@@ -210,7 +210,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		tv = null;
@@ -230,7 +230,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 11, indri, url
@@ -241,7 +241,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 12, term overlap url
@@ -252,7 +252,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		tv = null;
@@ -273,7 +273,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 14, indri, inlink
@@ -284,7 +284,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		
 		// 15, term overlap inlink
@@ -295,7 +295,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		// custom feature 1
 		if (mask[16])
@@ -304,7 +304,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		// custom feature 2
 		if (mask[17])
@@ -313,7 +313,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		if (res.size() != FEATURES_NUM)
 		{
@@ -331,8 +331,11 @@ public class FeatureVector {
 			
 			for (int i = 0; i < ls.size(); ++i)
 			{
-				max = Math.max(max, ls.get(i).get(idx));
-				min = Math.min(min, ls.get(i).get(idx));
+				if (!Double.isNaN(ls.get(i).get(idx)))
+				{
+					max = Math.max(max, ls.get(i).get(idx));
+					min = Math.min(min, ls.get(i).get(idx));
+				}
 			}
 			// now we have the max and min
 			if (max == min)//TODO for double, equals is not a good idea
@@ -345,8 +348,15 @@ public class FeatureVector {
 				for (int i = 0; i < ls.size(); ++i)
 				{
 					double tmp = ls.get(i).get(idx);
-					double tmp2 = (tmp - min) / (max - min);
-					ls.get(i).set(idx, tmp2);
+					if (!Double.isNaN(tmp))
+					{
+						double tmp2 = (tmp - min) / (max - min);
+						ls.get(i).set(idx, tmp2);
+					}
+					else
+					{
+						ls.get(i).set(idx, 0.0d);
+					}
 				}
 			}
 		}
@@ -415,17 +425,25 @@ public class FeatureVector {
 		long doclen = QryEval.dls.getDocLength(field, docid);
 		int N = QryEval.READER.numDocs();
 		
-		for (int i = 1; i < tv.stemsLength(); ++i)
+		HashMap<String, Integer> token_hm = new HashMap<String, Integer>();
+		for (int i = 0; i < tokens.length; ++i)
 		{
-			int df = tv.stemDf(i);
-			int tf = tv.stemFreq(i);
-			
-			double RSJ_weight = Math.log((double)(N - df + 0.5) / (double)(df + 0.5));
-			double tf_weight = tf / ((double)tf + QryEval.letor_k_1 * ((1 - QryEval.letor_b) + 
-            		QryEval.letor_b * doclen / avg_doclen));
-			score += RSJ_weight * tf_weight;//user weight is 1, so we omit it
+			token_hm.put(tokens[i], 0);
 		}
 		
+		for (int i = 1; i < tv.stemsLength(); ++i)
+		{
+			if (token_hm.containsKey(tv.stemString(i)))
+			{
+				int df = tv.stemDf(i);
+				int tf = tv.stemFreq(i);
+				
+				double RSJ_weight = Math.log((double)(N - df + 0.5) / (double)(df + 0.5));
+				double tf_weight = tf / ((double)tf + QryEval.letor_k_1 * ((1 - QryEval.letor_b) + 
+	            		QryEval.letor_b * doclen / avg_doclen));
+				score += RSJ_weight * tf_weight;//user weight is 1, so we omit it
+			}
+		}
 		return score;
 	}
 	
@@ -441,6 +459,7 @@ public class FeatureVector {
 	public double getIndriScore(int docid, String field, TermVector tv) throws IOException
 	{
 		double score = 1.0d;
+		
 		double length_C = QryEval.READER.getSumTotalTermFreq(field);
 		double length_d = QryEval.dls.getDocLength(field, docid);
 		
@@ -448,7 +467,7 @@ public class FeatureVector {
 		HashMap<String, Integer> reverseLookup = new HashMap<String, Integer>();
 		for (int i = 1; i < tv.stemsLength(); ++i)
 		{
-			if (reverseLookup.containsKey(tv.stemString(i)))
+			if (!reverseLookup.containsKey(tv.stemString(i)))
 				reverseLookup.put(tv.stemString(i), i);
 		}
 		
@@ -463,6 +482,7 @@ public class FeatureVector {
 			int tf = 0;
 			if (reverseLookup.containsKey(curr))
 			{
+				
 				int index = reverseLookup.get(curr);
 				tf = tv.stemFreq(index);
 				contain_flag = 1;
@@ -470,9 +490,9 @@ public class FeatureVector {
 			// smoothing factor
 			double p_MLE = ((double)ctf) / ((double)length_C);
 			// calculate the score
-			score *= QryEval.letor_lambda * ((double)tf + QryEval.letor_mu * p_MLE) /
+			double tmp = QryEval.letor_lambda * ((double)tf + QryEval.letor_mu * p_MLE) /
             		((double)length_d + QryEval.letor_mu) + (1 - QryEval.letor_lambda) * p_MLE;
-			
+			score *= Math.pow(tmp, 1 / (double)(tokens.length));
 		}
 		// if the document doesn't contain any token, the score is 0 instead of default score
 		if (contain_flag == 0)

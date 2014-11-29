@@ -223,15 +223,14 @@ public class QryEval {
         	for (int i = 0; i < disable_arr.length; ++i)
         	{
         		disable_arr_int[i] = Integer.parseInt(disable_arr[i].trim()); 
-        		mask[disable_arr_int[i]] = false; 
+        		mask[disable_arr_int[i]-1] = false; 
         	}
         	
-        	//Thread.sleep(10000);
         	Scanner training_scan = new Scanner(new File(params.get("letor:trainingQueryFile")));
         	do {
         		String curr_query = training_scan.nextLine();
         		String curr_query_arr[] = curr_query.split(":");
-        		String tokens[] = tokenizeQuery(curr_query);
+        		String tokens[] = tokenizeQuery(curr_query_arr[1]);
         		System.out.println("$$Current training query is : " + curr_query);
         		
         		ArrayList<String> rel = relevance_map.get(curr_query_arr[0]);
@@ -269,8 +268,7 @@ public class QryEval {
     				FeatureVectorWriter.write(tmp_str.toString());
     				FeatureVectorWriter.newLine();
         		}
-        		//System.out.println(s);
-        		Thread.sleep(10000);
+        		//Thread.sleep(10000);
         		try {
         			FeatureVectorWriter.close();
         		}
@@ -279,20 +277,166 @@ public class QryEval {
         		}
         	}while(training_scan.hasNext());
         	training_scan.close();
-        	
-        	
-        	
+        	System.out.println("$$now we call SVM to train a model");
         	// call letor to generate the feature vector for training queries
-        	
-        	// write the feature vectors to a file
-        	
-        	// call SVM to train a retrieval model
+            // runs svm_rank_learn from within Java to train the model
+            // execPath is the location of the svm_rank_learn utility, 
+            // which is specified by letor:svmRankLearnPath in the parameter file.
+            // FEAT_GEN.c is the value of the letor:c parameter.
+        	String execPath = params.get("letor:svmRankLearnPath");
+        	String FEAT_GEN = params.get("letor:svmRankParamC");
+        	String qrelsFeatureOutputFile = params.get("letor:trainingFeatureVectorsFile");
+        	String modelOutputFile = params.get("letor:svmRankModelFile");
+            Process cmdProc = Runtime.getRuntime().exec(
+                new String[] { execPath, "-c", String.valueOf(FEAT_GEN), qrelsFeatureOutputFile,
+                    modelOutputFile });
+
+            // The stdout/stderr consuming code MUST be included.
+            // It prevents the OS from running out of output buffer space and stalling.
+
+            // consume stdout and print it out for debugging purposes
+            BufferedReader stdoutReader = new BufferedReader(
+                new InputStreamReader(cmdProc.getInputStream()));
+            String SVM_line;
+            while ((SVM_line = stdoutReader.readLine()) != null) {
+              System.out.println(SVM_line);
+            }
+            // consume stderr and print it for debugging purposes
+            BufferedReader stderrReader = new BufferedReader(
+                new InputStreamReader(cmdProc.getErrorStream()));
+            while ((SVM_line = stderrReader.readLine()) != null) {
+              System.out.println(SVM_line);
+            }
+
+            // get the return value from the executable. 0 means success, non-zero 
+            // indicates a problem
+            int retValue = cmdProc.waitFor();
+            if (retValue != 0) {
+              throw new Exception("SVM Rank crashed.");
+            }
         	
         	// read test queries from input file
+            
+            Scanner queryScanner2 = new Scanner(new File(params.get("queryFilePath")));
+            String queryLine2 = null;
+        	do {
+            	// use BM25 to get initial ranking for test queries
+        		queryLine2 = queryScanner2.nextLine();
+                System.out.println(">> Original query is " + queryLine);
+                String[] parts = queryLine2.split(":");
+        		String tokens[];
+                int queryID = 0;
+                //if the query line doesn't contain a queryID
+                if (parts.length == 1) {
+                	queryLine2 = parts[0];
+                	tokens = tokenizeQuery(parts[0]);
+                }
+                //the query line contains a queryID
+                else {
+                    queryID = Integer.parseInt(parts[0]);
+                    queryLine2 = parts[1];
+                    tokens = tokenizeQuery(parts[1]);
+                }
+
+        		System.out.println("$$ Use BM25 to get initial ranking");
+            	Qryop qTree;
+            	RetrievalModel model2 = new RetrievalModelBM25();
+                qTree = parseQuery (queryLine2, model2);
+                QryResult result = qTree.evaluate (model2);
+                
+                System.out.println(">> BM25 Rank begin");
+                if (result != null) {
+                	rank(result);
+                }
+                System.out.println(">> BM25 Rank end");
+                printResults (queryLine2, result, queryID);
+                writeResults (writer, queryLine2, result, queryID);
+                // store the top 100 results
+                ArrayList<Integer> svm_top_docid = new ArrayList<Integer>();
+                for (int i = 0; i < Math.min(100, result.docScores.scores.size()); ++i) {
+                	svm_top_docid.add(result.docScores.getDocid(i));
+                }
+                //System.out.println(svm_top_docid);
+                System.out.println("calculate feature vectors for top 100 ranked documents(for each query)");
+            	// calculate feature vectors for top 100 ranked documents(for each query)
+                ArrayList<ArrayList<Double>> ls2 = new ArrayList<ArrayList<Double>>();
+        		FeatureVector fv2 = new FeatureVector();
+        		fv2.tokens = tokens;
+    			fv2.mask = mask;
+    			fv2.pagerank_map = pagerank_map;
+        		for (int i = 0; i < svm_top_docid.size(); ++i)
+        		{
+        			int curr_int_id = svm_top_docid.get(i);
+        			ls2.add(fv2.generateFeatureVector(curr_int_id));
+        		}
+        		ArrayList<String> s2 = fv2.generateNormalizedFeatureVector(ls2);
+        		// write to file
+        		
+        		BufferedWriter FeatureVectorWriter2 = null;
+        		FeatureVectorWriter2 = new BufferedWriter(new FileWriter(new File(
+                        params.get("letor:testingFeatureVectorsFile"))));
+        		for (int i = 0; i < svm_top_docid.size(); ++i)
+        		{
+    				StringBuilder tmp_str = new StringBuilder();
+    				tmp_str.append(0);
+    				tmp_str.append(" qid:");
+    				tmp_str.append(queryID);
+    				tmp_str.append(" ");
+    				tmp_str.append(s2.get(i));
+    				tmp_str.append("# ");
+    				tmp_str.append(getExternalDocid(queryID));
+    				FeatureVectorWriter2.write(tmp_str.toString());
+    				FeatureVectorWriter2.newLine();
+        		}
+        		try {
+        			FeatureVectorWriter2.close();
+        		}
+        		catch (Exception e) {
+        			throw new Exception("featurevectorwriter2 close error");
+        		}
+        		System.out.println("$$Initial ranking has been wrote to file!");
+        	} while(queryScanner2.hasNext());
         	
-        	// use BM25 to get initial ranking for test queries
+        	System.out.println("$$now we call SVM to train a model");
+        	// call letor to generate the feature vector for training queries
+            // runs svm_rank_learn from within Java to train the model
+            // execPath is the location of the svm_rank_learn utility, 
+            // which is specified by letor:svmRankLearnPath in the parameter file.
+            // FEAT_GEN.c is the value of the letor:c parameter.
+        	String execPath2 = params.get("letor:svmRankClassifyPath");
+        	String FEAT_GEN2 = params.get("letor:svmRankParamC");
+        	String qrelsFeatureOutputFile2 = params.get("letor:testingFeatureVectorsFile");
+        	String modelOutputFile2 = params.get("letor:testingDocumentScore");
+            Process cmdProc2 = Runtime.getRuntime().exec(
+            		new String[] { params.get("letor:svmRankClassifyPath").trim(), 
+            				params.get("letor:testingFeatureVectorsFile").trim(), 
+            				params.get("letor:svmRankModelFile").trim(),
+            				params.get("letor:testingDocumentScores").trim()});
+            
+            // The stdout/stderr consuming code MUST be included.
+            // It prevents the OS from running out of output buffer space and stalling.
+
+            // consume stdout and print it out for debugging purposes
+            BufferedReader stdoutReader2 = new BufferedReader(
+                new InputStreamReader(cmdProc2.getInputStream()));
+            String SVM_line2;
+            while ((SVM_line2 = stdoutReader2.readLine()) != null) {
+              System.out.println(SVM_line2);
+            }
+            // consume stderr and print it for debugging purposes
+            BufferedReader stderrReader2 = new BufferedReader(
+                new InputStreamReader(cmdProc2.getErrorStream()));
+            while ((SVM_line2 = stderrReader2.readLine()) != null) {
+              System.out.println(SVM_line2);
+            }
+
+            // get the return value from the executable. 0 means success, non-zero 
+            // indicates a problem
+            int retValue2 = cmdProc2.waitFor();
+            if (retValue2 != 0) {
+              throw new Exception("SVM Rank crashed.");
+            }
         	
-        	// calculate feature vectors for top 100 ranked documents(for each query)
         	
         	// write the feature vectors to a file
         	
