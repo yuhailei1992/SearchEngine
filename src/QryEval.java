@@ -178,6 +178,7 @@ public class QryEval {
         	Map<String, ArrayList<String>> relevance_map = new HashMap<String, ArrayList<String>>();
         	Scanner rel_scan = new Scanner(new File(params.get("letor:trainingQrelsFile")));
         	ArrayList<Integer> rel_docid = new ArrayList<Integer>();
+        	ArrayList<String> rel_docid_str = new ArrayList<String>();
         	do {
         		String curr = rel_scan.nextLine();
         		String curr_arr[] = curr.split("\\s+");
@@ -196,6 +197,7 @@ public class QryEval {
         			relevance_map.put(curr_arr[0], rel_al);
         		}
         		rel_docid.add(Integer.parseInt(curr_arr[0]));
+        		rel_docid_str.add(curr_arr[0]);
         		
         	}while (rel_scan.hasNext());
         	rel_scan.close();
@@ -208,8 +210,6 @@ public class QryEval {
         		String curr = pagerank_scan.nextLine();
         		String curr_arr[] = curr.split("\\s+");
         		pagerank_map.put(curr_arr[0], Double.parseDouble(curr_arr[1]));
-        		//System.out.println(curr_arr[0] + '-' + curr_arr[1]);
-        		
         	}while(pagerank_scan.hasNext());
         	pagerank_scan.close();
         	
@@ -226,16 +226,6 @@ public class QryEval {
         		mask[disable_arr_int[i]] = false; 
         	}
         	
-        	// test disable feature
-        	/*
-        	for (int i = 0; i < 18; ++i)
-        	{
-        		if (mask[i])
-        			System.out.println("yes");
-        		else 
-        			System.out.println("no");
-        	}
-        	*/
         	//Thread.sleep(10000);
         	Scanner training_scan = new Scanner(new File(params.get("letor:trainingQueryFile")));
         	do {
@@ -243,30 +233,54 @@ public class QryEval {
         		String curr_query_arr[] = curr_query.split(":");
         		String tokens[] = tokenizeQuery(curr_query);
         		System.out.println("$$Current training query is : " + curr_query);
-        		/*
-        		System.out.println("original is " + curr_query);
-        		System.out.println("tokenized");
-        		for (int i = 0; i < curr_query_arr.length; ++i)
-        		{
-        			System.out.println(tokens[i]);
-        		}
-        		*/
+        		
         		ArrayList<String> rel = relevance_map.get(curr_query_arr[0]);
         		// foreach document d in the relevance udgements for training query q
         		
-        		
+        		ArrayList<ArrayList<Double>> ls = new ArrayList<ArrayList<Double>>();
+        		FeatureVector fv = new FeatureVector();
+        		fv.tokens = tokens;
+    			fv.mask = mask;
+    			fv.pagerank_map = pagerank_map;
         		for (int i = 0; i < rel.size(); ++i)
         		{
-        			FeatureVector fv = new FeatureVector();
-        			fv.tokens = tokens;
-        			fv.mask = mask;
         			String curr_ext_id = rel.get(i).split("\\s+")[2];
         			int curr_int_id = getInternalDocid(curr_ext_id);
-        			fv.pagerank_map = pagerank_map;
-        			ArrayList<String> s = fv.generateNormalizedFeatureVector(rel_docid);
+        			ls.add(fv.generateFeatureVector(curr_int_id));
+        			//System.out.println(fv.generateFeatureVector(curr_int_id));
+        		}
+        		ArrayList<String> s = fv.generateNormalizedFeatureVector(ls);
+        		// write to file
+        		BufferedWriter FeatureVectorWriter = null;
+        		FeatureVectorWriter = new BufferedWriter(new FileWriter(new File(
+                        params.get("letor:trainingFeatureVectorsFile"))));
+        		//System.out.println("s size is " + s.size());
+        		for (int i = 0; i < rel.size(); ++i)
+        		{
+        			String arr[] = rel.get(i).split("\\s+");
+    				StringBuilder tmp_str = new StringBuilder();
+    				tmp_str.append(arr[3]);
+    				tmp_str.append(" qid:");
+    				tmp_str.append(curr_query_arr[0]);
+    				tmp_str.append(" ");
+    				tmp_str.append(s.get(i));
+    				tmp_str.append("# ");
+    				tmp_str.append(arr[2]);
+    				FeatureVectorWriter.write(tmp_str.toString());
+    				FeatureVectorWriter.newLine();
+        		}
+        		//System.out.println(s);
+        		Thread.sleep(10000);
+        		try {
+        			FeatureVectorWriter.close();
+        		}
+        		catch (Exception e) {
+        			throw new Exception("featurevectorwriter close error");
         		}
         	}while(training_scan.hasNext());
         	training_scan.close();
+        	
+        	
         	
         	// call letor to generate the feature vector for training queries
         	

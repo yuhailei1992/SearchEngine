@@ -315,7 +315,10 @@ public class FeatureVector {
 		{
 			res.add(0.0);
 		}
-		sanityCheck();
+		if (res.size() != FEATURES_NUM)
+		{
+			throw new Exception("feature number mismatch");
+		}
 		return res;
 	}
 	
@@ -349,23 +352,16 @@ public class FeatureVector {
 		}
 	}
 	
-	public ArrayList<String> generateNormalizedFeatureVector(ArrayList<Integer> docids) throws Exception
+	public ArrayList<String> generateNormalizedFeatureVector(ArrayList<ArrayList<Double>> ls) throws Exception
 	{
-		ArrayList<ArrayList<Double>> ls = new ArrayList<ArrayList<Double>>();
 		ArrayList<String> res = new ArrayList<String>();
-		for (int i = 0; i < docids.size(); ++i)
-		{
-			int curr_docid = docids.get(i);
-			ls.add(generateFeatureVector(curr_docid));
-		}
-		//TODO
+		
 		for (int i = 0; i < FEATURES_NUM; ++i)
 		{
 			normalizeFeatureVector(ls, i);//TODO
 		}
-		// write to file
 		
-		for (int i = 0; i < docids.size(); ++i)
+		for (int i = 0; i < ls.size(); ++i)
 		{
 			StringBuilder tmp = new StringBuilder();
 			for (int j = 0; j < FEATURES_NUM; ++j)
@@ -379,17 +375,7 @@ public class FeatureVector {
 		}
 		return res;
 	}
-	/**
-	 * @brief check the correctness of feature vector
-	 * @throws Exception
-	 */
-	private void sanityCheck () throws Exception
-	{
-		if (this.feature.size() != FEATURES_NUM)
-		{
-			throw new Exception("feature number mismatch");
-		}
-	}
+
 	
 	/**
 	 * 
@@ -421,6 +407,7 @@ public class FeatureVector {
 	 * @return
 	 * @throws IOException
 	 */
+	
 	public double getBM25Score(int docid, String field, TermVector tv) throws IOException
 	{
 		double score = 0.0d;
@@ -441,6 +428,7 @@ public class FeatureVector {
 		
 		return score;
 	}
+	
 	
 	/**
 	 * 
