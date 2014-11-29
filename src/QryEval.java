@@ -403,12 +403,8 @@ public class QryEval {
             // execPath is the location of the svm_rank_learn utility, 
             // which is specified by letor:svmRankLearnPath in the parameter file.
             // FEAT_GEN.c is the value of the letor:c parameter.
-        	String execPath2 = params.get("letor:svmRankClassifyPath");
-        	String FEAT_GEN2 = params.get("letor:svmRankParamC");
-        	String qrelsFeatureOutputFile2 = params.get("letor:testingFeatureVectorsFile");
-        	String modelOutputFile2 = params.get("letor:testingDocumentScore");
             Process cmdProc2 = Runtime.getRuntime().exec(
-            		new String[] { params.get("letor:svmRankClassifyPath").trim(), 
+            		new String[] {params.get("letor:svmRankClassifyPath").trim(), 
             				params.get("letor:testingFeatureVectorsFile").trim(), 
             				params.get("letor:svmRankModelFile").trim(),
             				params.get("letor:testingDocumentScores").trim()});
@@ -436,9 +432,6 @@ public class QryEval {
             if (retValue2 != 0) {
               throw new Exception("SVM Rank crashed.");
             }
-        	
-        	
-        	// write the feature vectors to a file
         	
         	// read the score produced by SVM
         	
