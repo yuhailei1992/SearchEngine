@@ -43,18 +43,26 @@ public class QryEval {
         analyzer.setStopwordRemoval(true);
         analyzer.setStemmer(EnglishAnalyzerConfigurable.StemmerType.KSTEM);
     }
-    
+    /* bm25 parameters */
     public static float BM25_k_1 = 0.0f;
     public static float BM25_b = 0.0f;
     public static float BM25_k_3 = 0.0f;
+    /* indri parameters */
     public static float Indri_mu = 0.0f;
     public static float Indri_lambda = 0.0f;
+    /* letor parameters */
+    public static float letor_k_1 = 0.0f;
+    public static float letor_k_3 = 0.0f;
+    public static float letor_b = 0.0f;
+    public static float letor_mu = 0.0f;
+    public static float letor_lambda = 0.0f;
     public static DocLengthStore dls;
     /**
      *  @param args The only argument is the path to the parameter file.
      *  @throws Exception
      */
-    public static void main(String[] args) throws Exception {
+    @SuppressWarnings({ "unchecked", "rawtypes" })
+	public static void main(String[] args) throws Exception {
 
         /*
          * check if the parameters are valid
@@ -127,7 +135,17 @@ public class QryEval {
         	QryEval.Indri_mu = Float.parseFloat(params.get("Indri:mu"));
         	QryEval.Indri_lambda = Float.parseFloat(params.get("Indri:lambda"));
         }
-        else {
+        else if (params.get("retrievalAlgorithm").equals("letor")){
+        	model = new RetrievalModelLearningtoRank();
+        	dls = new DocLengthStore(READER);
+        	QryEval.letor_mu = Float.parseFloat(params.get("Indri:mu"));
+        	QryEval.letor_lambda = Float.parseFloat(params.get("Indri:lambda"));
+        	QryEval.letor_k_1 = Float.parseFloat(params.get("BM25:k_1"));
+        	QryEval.letor_k_3 = Float.parseFloat(params.get("BM25:k_3"));
+        	QryEval.letor_b = Float.parseFloat(params.get("BM25:b"));
+        }
+        else
+        {
             System.err.println("Error: Unknown retrieval model.");
             System.exit(1);
         }
@@ -146,8 +164,128 @@ public class QryEval {
         		if(file.delete()){
         			System.out.println(">> Original expansion file, " + file.getName() + ", is deleted!");
         		}else{
-        			System.out.println("Delete operation failed.");
+        			System.out.println(">> Delete operation failed.");
         		}
+        }
+        
+        /*
+         * hw5
+         */
+        
+        if (model instanceof RetrievalModelLearningtoRank)
+        {
+        	// read the relevance file into a hashmap
+        	Map<String, ArrayList<String>> relevance_map = new HashMap<String, ArrayList<String>>();
+        	Scanner rel_scan = new Scanner(new File(params.get("letor:trainingQrelsFile")));
+        	ArrayList<Integer> rel_docid = new ArrayList<Integer>();
+        	do {
+        		String curr = rel_scan.nextLine();
+        		String curr_arr[] = curr.split("\\s+");
+        		//System.out.println(curr_arr[0]);
+        		
+        		if (relevance_map.containsKey(curr_arr[0]))// the query already exists
+        		{
+        			ArrayList<String> rel_al = relevance_map.get(curr_arr[0]);
+        			rel_al.add(curr);
+        			relevance_map.put(curr_arr[0], rel_al);
+        		}
+        		else
+        		{
+        			ArrayList<String> rel_al = new ArrayList<String>();
+        			rel_al.add(curr);
+        			relevance_map.put(curr_arr[0], rel_al);
+        		}
+        		rel_docid.add(Integer.parseInt(curr_arr[0]));
+        		
+        	}while (rel_scan.hasNext());
+        	rel_scan.close();
+        	
+        	// fetch pagerank from index
+        	System.out.println("Now we fetch pagerank scores from index file");
+        	HashMap<String, Double> pagerank_map = new HashMap<String, Double>();
+        	Scanner pagerank_scan = new Scanner(new File(params.get("letor:pageRankFile")));
+        	do {
+        		String curr = pagerank_scan.nextLine();
+        		String curr_arr[] = curr.split("\\s+");
+        		pagerank_map.put(curr_arr[0], Double.parseDouble(curr_arr[1]));
+        		//System.out.println(curr_arr[0] + '-' + curr_arr[1]);
+        		
+        	}while(pagerank_scan.hasNext());
+        	pagerank_scan.close();
+        	
+        	// set disable 
+        	boolean mask[] = new boolean[18];
+        	for (int i = 0; i < 18; ++i)
+        		mask[i] = true;
+        	String disable = params.get("letor:featureDisable");
+        	String disable_arr[] = disable.split(",");
+        	int disable_arr_int[] = new int[disable_arr.length];
+        	for (int i = 0; i < disable_arr.length; ++i)
+        	{
+        		disable_arr_int[i] = Integer.parseInt(disable_arr[i].trim()); 
+        		mask[disable_arr_int[i]] = false; 
+        	}
+        	
+        	// test disable feature
+        	/*
+        	for (int i = 0; i < 18; ++i)
+        	{
+        		if (mask[i])
+        			System.out.println("yes");
+        		else 
+        			System.out.println("no");
+        	}
+        	*/
+        	//Thread.sleep(10000);
+        	Scanner training_scan = new Scanner(new File(params.get("letor:trainingQueryFile")));
+        	do {
+        		String curr_query = training_scan.nextLine();
+        		String curr_query_arr[] = curr_query.split(":");
+        		String tokens[] = tokenizeQuery(curr_query);
+        		System.out.println("$$Current training query is : " + curr_query);
+        		/*
+        		System.out.println("original is " + curr_query);
+        		System.out.println("tokenized");
+        		for (int i = 0; i < curr_query_arr.length; ++i)
+        		{
+        			System.out.println(tokens[i]);
+        		}
+        		*/
+        		ArrayList<String> rel = relevance_map.get(curr_query_arr[0]);
+        		// foreach document d in the relevance udgements for training query q
+        		
+        		
+        		for (int i = 0; i < rel.size(); ++i)
+        		{
+        			FeatureVector fv = new FeatureVector();
+        			fv.tokens = tokens;
+        			fv.mask = mask;
+        			String curr_ext_id = rel.get(i).split("\\s+")[2];
+        			int curr_int_id = getInternalDocid(curr_ext_id);
+        			fv.pagerank_map = pagerank_map;
+        			ArrayList<String> s = fv.generateNormalizedFeatureVector(rel_docid);
+        		}
+        	}while(training_scan.hasNext());
+        	training_scan.close();
+        	
+        	// call letor to generate the feature vector for training queries
+        	
+        	// write the feature vectors to a file
+        	
+        	// call SVM to train a retrieval model
+        	
+        	// read test queries from input file
+        	
+        	// use BM25 to get initial ranking for test queries
+        	
+        	// calculate feature vectors for top 100 ranked documents(for each query)
+        	
+        	// write the feature vectors to a file
+        	
+        	// read the score produced by SVM
+        	
+        	// write the final ranking in trec_eval input format
+        	
         }
    	 
         /*
@@ -173,7 +311,7 @@ public class QryEval {
             // no query expansion
             if (!params.containsKey("fb") || !Boolean.parseBoolean(params.get("fb"))) {
             	// use the query to retrieve documents
-            	System.out.println(">> No expansion, directly retrieve instead");
+            	System.out.println(">> No expansion, directly retrieve");
             	Qryop qTree;
                 qTree = parseQuery (queryLine, model);
                 QryResult result = qTree.evaluate (model);
@@ -189,7 +327,6 @@ public class QryEval {
             else {//with query expansion
             	/*
             	 * first, delete the old expand query file
-            	 * 
             	 */
             	ArrayList<Integer> top_docid = new ArrayList<Integer>();//stores the top N document ids
             	ArrayList<Double> top_scores = new ArrayList<Double>();//stores the top N Indri scores
@@ -291,10 +428,9 @@ public class QryEval {
                 /*
                  * loop2: go throught the hashmap again and calculate the scores
                  */
-                //top_scores.
-                Iterator it = hm.entrySet().iterator();
+				Iterator it = hm.entrySet().iterator();
                 while (it.hasNext()) {
-                    Map.Entry<String, Double> pairs = (Map.Entry)it.next();
+					Map.Entry<String, Double> pairs = (Map.Entry)it.next();
                     double score = 0.0;
                     String curr_term = (String)pairs.getKey();
                     /*
@@ -339,19 +475,16 @@ public class QryEval {
                 String exp_qry = "#WAND ( ";
                 while(iterator2.hasNext() && i < Integer.parseInt(params.get("fbTerms"))) {
                      Map.Entry me2 = (Map.Entry)iterator2.next();
-                     
                      /*
                       * ignore terms that contain "." or ","
                       */
                      if (me2.getKey().toString().contains(".") || me2.getKey().toString().contains(",")) {
-                    	 ++i;//haileiy
                      }
                      /*
                       * regular process. Add this term to the expanded query
                       */
                      else {
                     	 //add to the expanded query
-                    	 //exp_qry += String.format( "%.4f", me2.getValue());
                     	 exp_qry += me2.getValue();
                     	 exp_qry += " ";
                     	 exp_qry += me2.getKey();
@@ -408,7 +541,7 @@ public class QryEval {
      * @param map
      * @return
      */
-    @SuppressWarnings("unchecked")
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     private static HashMap<String, Double> sortByValues(HashMap<String, Double> map) { 
         List<Double> list = new LinkedList(map.entrySet());
         // Defined Custom Comparator here
@@ -598,11 +731,9 @@ public class QryEval {
             	else {
             		if (isWeight == 1) isWeight = 0;
             		else isWeight = 1;
-            		//isWeight = 1;
 	                String[] parts = token.split("\\.");
 	                
 	                // parts.length is 1: the query doesn't specify field
-	                //System.out.println(parts[0]);
 	                //if it is a stopword, then remove the weight in our qryop
 	                if (tokenizeQuery(parts[0]).length == 0) {
 	                	System.out.println("Found Stopwords");
