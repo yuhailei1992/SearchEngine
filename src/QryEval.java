@@ -22,28 +22,8 @@ import org.apache.lucene.store.FSDirectory;
 import org.apache.lucene.util.Version;
 
 public class QryEval {
-
-    static String usage = "Usage:  java " + System.getProperty("sun.java.command")
-                          + " paramFile\n\n";
-
-    //  The index file reader is accessible via a global variable. This
-    //  isn't great programming style, but the alternative is for every
-    //  query operator to store or pass this value, which creates its
-    //  own headaches.
-
-    public static IndexReader READER;
-
-    //  Create and configure an English analyzer that will be used for
-    //  query parsing.
-
-    public static EnglishAnalyzerConfigurable analyzer =
-        new EnglishAnalyzerConfigurable (Version.LUCENE_43);
-    static {
-        analyzer.setLowercase(true);
-        analyzer.setStopwordRemoval(true);
-        analyzer.setStemmer(EnglishAnalyzerConfigurable.StemmerType.KSTEM);
-    }
-    /* bm25 parameters */
+	// data
+	/* bm25 parameters */
     public static float BM25_k_1 = 0.0f;
     public static float BM25_b = 0.0f;
     public static float BM25_k_3 = 0.0f;
@@ -57,55 +37,64 @@ public class QryEval {
     public static float letor_mu = 0.0f;
     public static float letor_lambda = 0.0f;
     public static DocLengthStore dls;
+    
+    static String usage = "Usage:  java " + System.getProperty("sun.java.command")
+                          + " paramFile\n\n";
+
+    //  The index file reader is accessible via a global variable. This
+    //  isn't great programming style, but the alternative is for every
+    //  query operator to store or pass this value, which creates its
+    //  own headaches.
+
+    public static IndexReader READER;
+    //  Create and configure an English analyzer that will be used for query parsing.
+
+    public static EnglishAnalyzerConfigurable analyzer =
+        new EnglishAnalyzerConfigurable (Version.LUCENE_43);
+    static {
+        analyzer.setLowercase(true);
+        analyzer.setStopwordRemoval(true);
+        analyzer.setStemmer(EnglishAnalyzerConfigurable.StemmerType.KSTEM);
+    }
+    
     /**
      *  @param args The only argument is the path to the parameter file.
      *  @throws Exception
      */
     @SuppressWarnings({ "unchecked", "rawtypes" })
 	public static void main(String[] args) throws Exception {
-
-        /*
-         * check if the parameters are valid
-         */
+        // check if the parameters are valid
         if (args.length < 1) {
             System.err.println(usage);
             System.exit(1);
         }
 
-        /*
-         *  read in the parameter file; one parameter per line in format of key=value
-         */
+        //  read in the parameter file; one parameter per line in format of key=value
         Map<String, String> params = new HashMap<String, String>();
-        Scanner scan = new Scanner(new File(args[0]));
-        String line = null;
+        Scanner params_scan = new Scanner(new File(args[0]));
+        String params_line = null;
         do {
-            line = scan.nextLine();
-            String[] pair = line.split("=");
+        	params_line = params_scan.nextLine();
+            String[] pair = params_line.split("=");
             params.put(pair[0].trim(), pair[1].trim());
-        } while (scan.hasNext());
-        scan.close();
+        } while (params_scan.hasNext());
+        params_scan.close();
 
-        /*
-         *  parameters required for this example to run
-         */
+        // check parameters required for this example to run
         if (!params.containsKey("indexPath")) {
             System.err.println("Error: Parameters were missing.");
             System.exit(1);
         }
 
-        /*
-         *  open the index
-         */
+        // open the index
         READER = DirectoryReader.open(FSDirectory.open(new File(params.get("indexPath"))));
 
         if (READER == null) {
             System.err.println(usage);
             System.exit(1);
         }
-
-        /* 
-         * initialize the appropriate retrieval model
-         */
+        
+        // initialize the appropriate retrieval model
         RetrievalModel model = new RetrievalModelRankedBoolean();
         if (params.get("retrievalAlgorithm").equals("UnrankedBoolean")) {
             model = new RetrievalModelUnrankedBoolean();
@@ -120,7 +109,7 @@ public class QryEval {
             	System.err.println("Error: Parameters were missing for BM25.");
                 System.exit(1);
             }
-            ///set the parameters of BM25
+            //set the parameters of BM25
             QryEval.BM25_k_1 = Float.parseFloat(params.get("BM25:k_1"));
             QryEval.BM25_b = Float.parseFloat(params.get("BM25:b"));
             QryEval.BM25_k_3 = Float.parseFloat(params.get("BM25:k_3"));
@@ -138,6 +127,11 @@ public class QryEval {
         else if (params.get("retrievalAlgorithm").equals("letor")){
         	model = new RetrievalModelLearningtoRank();
         	dls = new DocLengthStore(READER);
+        	if (!params.containsKey("Indri:mu") || !params.containsKey("Indri:lambda") ||
+        			!params.containsKey("BM25:k_1") || !params.containsKey("BM25:b") || !params.containsKey("BM25:k_3")) {
+            	System.err.println("Error: Parameters were missing for Indri.");
+                System.exit(1);
+            }
         	QryEval.letor_mu = Float.parseFloat(params.get("Indri:mu"));
         	QryEval.letor_lambda = Float.parseFloat(params.get("Indri:lambda"));
         	QryEval.letor_k_1 = Float.parseFloat(params.get("BM25:k_1"));
@@ -150,9 +144,7 @@ public class QryEval {
             System.exit(1);
         }
 
-        /*
-         * scan the query file
-         */
+        // scan the query file
         Scanner queryScanner = new Scanner(new File(params.get("queryFilePath")));
         String queryLine = null;
 
@@ -160,17 +152,15 @@ public class QryEval {
         writer = new BufferedWriter(new FileWriter(new File(
                                         params.get("trecEvalOutputPath"))));
         if (params.containsKey("fbExpansionQueryFile")) {
-        		File file = new File(params.get("fbExpansionQueryFile"));
-        		if(file.delete()){
-        			System.out.println(">> Original expansion file, " + file.getName() + ", is deleted!");
-        		}else{
-        			System.out.println(">> Delete operation failed.");
-        		}
+    		File file = new File(params.get("fbExpansionQueryFile"));
+    		if(file.delete()){
+    			System.out.println(">> Original expansion file, " + file.getName() + ", is deleted!");
+    		}else{
+    			System.out.println(">> Delete operation failed.");
+    		}
         }
         
-        /*
-         * hw5
-         */
+        // hw5
         
         if (model instanceof RetrievalModelLearningtoRank)
         {
@@ -182,7 +172,6 @@ public class QryEval {
         	do {
         		String curr = rel_scan.nextLine();
         		String curr_arr[] = curr.split("\\s+");
-        		//System.out.println(curr_arr[0]);
         		
         		if (relevance_map.containsKey(curr_arr[0]))// the query already exists
         		{
@@ -202,7 +191,7 @@ public class QryEval {
         	}while (rel_scan.hasNext());
         	rel_scan.close();
         	
-        	// fetch pagerank from index
+        	// fetch pagerank scores from file
         	System.out.println("Now we fetch pagerank scores from index file");
         	HashMap<String, Double> pagerank_map = new HashMap<String, Double>();
         	Scanner pagerank_scan = new Scanner(new File(params.get("letor:pageRankFile")));
@@ -213,7 +202,7 @@ public class QryEval {
         	}while(pagerank_scan.hasNext());
         	pagerank_scan.close();
         	
-        	// set disable 
+        	// fetch disable 
         	boolean mask[] = new boolean[18];
         	for (int i = 0; i < 18; ++i)
         		mask[i] = true;
@@ -228,45 +217,43 @@ public class QryEval {
             		mask[disable_arr_int[i]-1] = false; 
             	}
         	}
-        	
+        	// train a model
         	Scanner training_scan = new Scanner(new File(params.get("letor:trainingQueryFile")));
         	do {
         		String curr_query = training_scan.nextLine();
         		String curr_query_arr[] = curr_query.split(":");
         		String tokens[] = tokenizeQuery(curr_query_arr[1]);
-        		System.out.println("$$Current training query is : " + curr_query);
-        		
-        		ArrayList<String> rel = relevance_map.get(curr_query_arr[0]);
-        		// foreach document d in the relevance udgements for training query q
-        		
+        		System.out.println("$$ Current training query is : " + curr_query);
+        		ArrayList<String> relevance_ls = relevance_map.get(curr_query_arr[0]);
+        		// foreach document d in the relevance judgements for training query q
+        		// configure a feature vector
         		ArrayList<ArrayList<Double>> ls = new ArrayList<ArrayList<Double>>();
         		FeatureVector fv = new FeatureVector();
         		fv.tokens = tokens;
     			fv.mask = mask;
     			fv.pagerank_map = pagerank_map;
-        		for (int i = 0; i < rel.size(); ++i)
+        		for (int i = 0; i < relevance_ls.size(); ++i)
         		{
-        			String curr_ext_id = rel.get(i).split("\\s+")[2];
+        			String curr_ext_id = relevance_ls.get(i).split("\\s+")[2];
         			int curr_int_id = getInternalDocid(curr_ext_id);
         			ls.add(fv.generateFeatureVector(curr_int_id));
         		}
-        		ArrayList<String> s = fv.generateNormalizedFeatureVector(ls);
+        		// normalize the feature vector
+        		ArrayList<String> normalized_fv = fv.generateNormalizedFeatureVector(ls);
         		// write to file
         		BufferedWriter FeatureVectorWriter = null;
-        		FeatureVectorWriter = new BufferedWriter(new FileWriter(new File(
-                        params.get("letor:trainingFeatureVectorsFile"))));
-        		//System.out.println("s size is " + s.size());
-        		for (int i = 0; i < rel.size(); ++i)
+        		FeatureVectorWriter = new BufferedWriter(new FileWriter(new File(params.get("letor:trainingFeatureVectorsFile"))));
+        		for (int i = 0; i < relevance_ls.size(); ++i)
         		{
-        			String arr[] = rel.get(i).split("\\s+");
+        			String arr[] = relevance_ls.get(i).split("\\s+");
     				StringBuilder tmp_str = new StringBuilder();
-    				tmp_str.append(arr[3]);
+    				tmp_str.append(arr[3]);// score
     				tmp_str.append(" qid:");
     				tmp_str.append(curr_query_arr[0]);
     				tmp_str.append(" ");
-    				tmp_str.append(s.get(i));
+    				tmp_str.append(normalized_fv.get(i));
     				tmp_str.append("# ");
-    				tmp_str.append(arr[2]);
+    				tmp_str.append(arr[2]); // external id
     				FeatureVectorWriter.write(tmp_str.toString());
     				FeatureVectorWriter.newLine();
         		}
@@ -274,11 +261,12 @@ public class QryEval {
         			FeatureVectorWriter.close();
         		}
         		catch (Exception e) {
-        			throw new Exception("featurevectorwriter close error");
+        			throw new Exception("Training feature vector writer close error");
         		}
         	}while(training_scan.hasNext());
         	training_scan.close();
-        	System.out.println("$$Now we call SVM to train a model");
+        	
+        	System.out.println("$$ Now we call SVM to train a model");
         	// call letor to generate the feature vector for training queries
             // runs svm_rank_learn from within Java to train the model
             // execPath is the location of the svm_rank_learn utility, 
@@ -292,10 +280,6 @@ public class QryEval {
                 new String[] { execPath, "-c", String.valueOf(FEAT_GEN), qrelsFeatureOutputFile,
                     modelOutputFile });
 
-            // The stdout/stderr consuming code MUST be included.
-            // It prevents the OS from running out of output buffer space and stalling.
-
-            // consume stdout and print it out for debugging purposes
             BufferedReader stdoutReader = new BufferedReader(
                 new InputStreamReader(cmdProc.getInputStream()));
             String SVM_line;
@@ -308,40 +292,37 @@ public class QryEval {
             while ((SVM_line = stderrReader.readLine()) != null) {
               System.out.println(SVM_line);
             }
-
-            // get the return value from the executable. 0 means success, non-zero 
-            // indicates a problem
+            
             int retValue = cmdProc.waitFor();
             if (retValue != 0) {
               throw new Exception("SVM Rank crashed.");
             }
         	
         	// read test queries from input file
-            
-            Scanner queryScanner2 = new Scanner(new File(params.get("queryFilePath")));
-            String queryLine2 = null;
+            Scanner testing_scan = new Scanner(new File(params.get("queryFilePath")));
+            String testing_line = null;
         	do {
             	// use BM25 to get initial ranking for test queries
-        		queryLine2 = queryScanner2.nextLine();
+        		testing_line = testing_scan.nextLine();
                 System.out.println(">> Original query is " + queryLine);
-                String[] parts = queryLine2.split(":");
+                String[] parts = testing_line.split(":");
         		String tokens[];
                 int queryID = 0;
                 //if the query line doesn't contain a queryID
                 if (parts.length == 1) {
-                	queryLine2 = parts[0];
+                	testing_line = parts[0];
                 	tokens = tokenizeQuery(parts[0]);
                 }
                 //the query line contains a queryID
                 else {
                     queryID = Integer.parseInt(parts[0]);
-                    queryLine2 = parts[1];
+                    testing_line = parts[1];
                     tokens = tokenizeQuery(parts[1]);
                 }
 
         		System.out.println("$$ Use BM25 to get initial ranking");
             	Qryop qTree;
-            	RetrievalModel model2 = new RetrievalModelBM25();
+            	RetrievalModel model_bm25_for_letor = new RetrievalModelBM25();
             	if (!params.containsKey("BM25:k_1") || !params.containsKey("BM25:b") || !params.containsKey("BM25:k_3")) {
                 	System.err.println("Error: Parameters were missing for BM25.");
                     System.exit(1);
@@ -350,17 +331,16 @@ public class QryEval {
                 QryEval.BM25_k_1 = Float.parseFloat(params.get("BM25:k_1"));
                 QryEval.BM25_b = Float.parseFloat(params.get("BM25:b"));
                 QryEval.BM25_k_3 = Float.parseFloat(params.get("BM25:k_3"));
-            	System.out.println("BM25 query is " + queryLine2);
-                qTree = parseQuery (queryLine2, model2);
-                QryResult result = qTree.evaluate (model2);
+                qTree = parseQuery (testing_line, model_bm25_for_letor);
+                QryResult result = qTree.evaluate (model_bm25_for_letor);
                 
-                System.out.println(">> BM25 Rank begin");
+                System.out.println("$$ letor BM25 Rank begin");
                 if (result != null) {
                 	rank(result);
                 }
-                System.out.println(">> BM25 Rank end");
-                printResults (queryLine2, result, queryID);
-                // store the top 100 results
+                System.out.println("$$ letor BM25 Rank end");
+                
+                //TODO
                 ArrayList<Integer> svm_top_docid = new ArrayList<Integer>();
                 for (int i = 0; i < Math.min(100, result.docScores.scores.size()); ++i) {
                 	svm_top_docid.add(result.docScores.getDocid(i));
@@ -401,22 +381,13 @@ public class QryEval {
         		catch (Exception e) {
         			throw new Exception("featurevectorwriter2 close error");
         		}
-        		System.out.println("$$Initial ranking has been wrote to file!");
         		System.out.println("$$now we call SVM to train a model");
-            	// call letor to generate the feature vector for training queries
-                // runs svm_rank_learn from within Java to train the model
-                // execPath is the location of the svm_rank_learn utility, 
-                // which is specified by letor:svmRankLearnPath in the parameter file.
-                // FEAT_GEN.c is the value of the letor:c parameter.
                 Process cmdProc2 = Runtime.getRuntime().exec(
-                		new String[] {params.get("letor:svmRankClassifyPath").trim(), 
-                				params.get("letor:testingFeatureVectorsFile").trim(), 
-                				params.get("letor:svmRankModelFile").trim(),
-                				params.get("letor:testingDocumentScores").trim()});
+                		new String[] {params.get("letor:svmRankClassifyPath"), 
+                				params.get("letor:testingFeatureVectorsFile"), 
+                				params.get("letor:svmRankModelFile"),
+                				params.get("letor:testingDocumentScores")});
                 
-                // The stdout/stderr consuming code MUST be included.
-                // It prevents the OS from running out of output buffer space and stalling.
-
                 // consume stdout and print it out for debugging purposes
                 BufferedReader stdoutReader2 = new BufferedReader(
                     new InputStreamReader(cmdProc2.getInputStream()));
@@ -452,17 +423,16 @@ public class QryEval {
                 } while (docscore_scan.hasNext());
                 if (docscore.size() != 100)
                 {
-                	System.out.println("size mismatch!!!!!!");
+                	System.out.println("$$ Size mismatch!!!!!!");
                 }
                 // sort the docids by their classified score
-                HashMap<String, Double> sorted = sortByValues(hmm);
-                
-                Set set2 = sorted.entrySet();
+                HashMap<String, Double> sorted_hm = sortByValues(hmm);
+                Set set2 = sorted_hm.entrySet();
                 
                 // write to file
                 BufferedWriter letorResultWriter = null;
         		letorResultWriter = new BufferedWriter(new FileWriter(new File(
-                        params.get("trecEvalOutputPath"))));
+                        params.get("trecEvalOutputPath")), true));
         		
         		if (svm_top_docid.size() < 1) {
                     String towrite = queryID + "\t" + "Q0" + "\t" + "dummy" + "\t" +
@@ -482,39 +452,31 @@ public class QryEval {
                     	++j;
                     }
                 }
-    				//letorResultWriter.newLine();
         		try {
         			letorResultWriter.close();
         		}
         		catch (Exception e) {
         			throw new Exception("letorResultWriter close error");
         		}
-                
-            	// write the final ranking in trec_eval input format
-        	} while(queryScanner2.hasNext());
-        	
+        	} while(testing_scan.hasNext());
         }
    	 
-        /*
-         * iteratively process all the queries
-         */
+        // non-letor, iteratively process all the queries
         else do {
             queryLine = queryScanner.nextLine();
             System.out.println(">> Original query is " + queryLine);
             String[] parts = queryLine.split(":");
             int queryID = 0;
-            //if the query line doesn't contain a queryID
+            // if the query line doesn't contain a queryID
             if (parts.length == 1) {
                 queryLine = parts[0];
             }
-            //the query line contains a queryID
+            // the query line contains a queryID
             else {
                 queryID = Integer.parseInt(parts[0]);
                 queryLine = parts[1];
             }
-            /*
-             * hw4
-             */
+            // hw4
             // no query expansion
             if (!params.containsKey("fb") || !Boolean.parseBoolean(params.get("fb"))) {
             	// use the query to retrieve documents
@@ -596,7 +558,7 @@ public class QryEval {
                 double length_C = (double)QryEval.READER.getSumTotalTermFreq("body");
                 
                 /*
-            	 * first loop: go through all the top docs, store terms and their ctf in a hashmap
+            	 * loop 1: go through all the top docs, store terms and their ctf in a hashmap
             	 */
                 for (int i = 0; i < top_docid.size(); ++i) {
                 	TermVector tv = new TermVector(top_docid.get(i), "body");
@@ -611,24 +573,15 @@ public class QryEval {
                 	for (int j = 1; j < tv.terms.length; ++j) {
                 		
                 		String curr_term = tv.stemString(j);
-                		/*
-                		 * store term with tf in temp_hm
-                		 */
+                		//store term with tf in temp_hm
                 		temp_hm.put(curr_term, (double)tv.stemFreq(j));
-                		/*
-                		 * then store term with ctf in hm
-                		 */
+                		// then store term with ctf in hm
                 		double ctf = (double)tv.totalStemFreq(j);
-                		if (hm.containsKey(curr_term)) {
-                			//do nothing, cause ctf is constant for any document
-                		}
-                		else {
+                		if (!hm.containsKey(curr_term)) {
                 			hm.put(curr_term, ctf);
                 		}
                 	}
-                	/*
-                	 * add the temp hm to the doc_hm
-                	 */
+                	// add the temp hm to the doc_hm
                 	doc_hm.add(temp_hm);
                 }
                 
@@ -701,9 +654,7 @@ public class QryEval {
                 }
                 exp_qry += ")";
                 String exp_qry_with_qryid = queryID + ":" + exp_qry;
-                /*
-                 * write the expanded query to fbExpansionQueryFile
-                 */
+                //write the expanded query to fbExpansionQueryFile
                 BufferedWriter writer_expand = new BufferedWriter(new FileWriter(new File(
                                                 params.get("fbExpansionQueryFile")), true));
                 writer_expand.write(exp_qry_with_qryid);
@@ -711,7 +662,7 @@ public class QryEval {
                 try {
                 	writer_expand.close();
                 } catch (Exception e) {
-                	//
+                	throw new Exception("error writing expanded queries");
                 }
                 /*
                  * use the expanded query to retrieve
@@ -904,13 +855,6 @@ public class QryEval {
                 currentOp = new QryopIlSyn();
                 stack.push(currentOp);
             } else if (token.startsWith(")")) {
-                // Finish current query operator.
-                // If the current query operator is not an argument to
-                // another query operator (i.e., the stack is empty when it
-                // is removed), we're done (assuming correct syntax - see
-                // below). Otherwise, add the current operator as an
-                // argument to the higher-level operator, and shift
-                // processing back to the higher-level operator.
             	isWeight = 1;
                 stack.pop();
                 if (stack.empty())
@@ -972,7 +916,6 @@ public class QryEval {
 	                    	}
 	                    }
 	                }
-	                //isWeight = 1;
             	}
             }
         }

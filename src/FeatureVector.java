@@ -1,70 +1,27 @@
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Set;
-
-import org.apache.lucene.analysis.tokenattributes.FlagsAttribute;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.util.BytesRef;
 
 public class FeatureVector {
-	/*
-	
-	public double spam_score;
-	public double url_depth;
-	public double wiki_score;
-	public double pagerank_score;
-	public double BM25_body;
-	public double Indri_body;
-	public double term_overlap_body;
-	public double BM25_title;
-	public double Indri_title;
-	public double term_overlap_title;
-	public double BM25_url;
-	public double Indri_url;
-	public double term_overlap_url;
-	public double BM25_inlink;
-	public double Indri_inlink;
-	public double term_overlap_inlink;
-	// custom features
-	public double custom_1;
-	public double custom_2;
-	*/
+	ArrayList<Double> feature;
 	private int FEATURES_NUM = 18;
 	boolean mask[];
-	ArrayList<Double> feature;
 	HashMap<String, Double> pagerank_map;
 	String[] tokens;
+	
 	/**
-	 * @brief: construction function
+	 * @brief: constructor
 	 */
 	public FeatureVector()
 	{
-		/*
-		spam_score = 0.0;
-		url_depth = 0;
-		wiki_score = 0.0;
-		pagerank_score = 0.0;
-		BM25_body = 0.0;
-		Indri_body = 0.0;
-		term_overlap_body = 0.0;
-		BM25_title = 0.0;
-		Indri_title = 0.0;
-		term_overlap_title = 0.0;
-		BM25_url = 0.0;
-		Indri_url = 0.0;
-		term_overlap_url = 0.0;
-		BM25_inlink = 0.0;
-		Indri_inlink = 0.0;
-		term_overlap_inlink = 0.0;
-		*/
+		// initialize enable mask
 		mask = new boolean[FEATURES_NUM];
 		for (int i = 0; i < FEATURES_NUM; ++i)
 			mask[i] = true;
+		// initialize feature and pagerank_map
 		feature = new ArrayList<Double>();
 		pagerank_map = new HashMap<String, Double>();
 	}
@@ -78,18 +35,17 @@ public class FeatureVector {
 		ArrayList<Double> res = new ArrayList<Double>();
 		// document reader
 		Document doc = QryEval.READER.document(docid);
+		// default_score is the score used for unavailable features
 		double default_score = Double.NaN;
 		// 0, spam score
 		if (mask[0])
 		{
-			double tmp = Integer.parseInt(doc.get("score"));
-			res.add(tmp);
+			res.add((double)Integer.parseInt(doc.get("score")));
 		}
 		else
 		{
 			res.add(default_score);
 		}
-		
 		// 1, url depth
 		if (mask[1])
 		{
@@ -99,7 +55,6 @@ public class FeatureVector {
 		{
 			res.add(default_score);
 		}
-		
 		// 2, wiki score
 		if (mask[2])
 		{
@@ -110,23 +65,16 @@ public class FeatureVector {
 			res.add(default_score);
 		}
 		// 3, pagerank
-		if (mask[3])
+		// the pagerank file doesn't necessarily contain a score
+		if (mask[3] && pagerank_map.containsKey(QryEval.getExternalDocid(docid)))
 		{
-			// the pagerank file doesn't necessarily contain a score
-			if (pagerank_map.containsKey(QryEval.getExternalDocid(docid)))
-			{
-				res.add(pagerank_map.get(QryEval.getExternalDocid(docid)));
-			}
-			else
-			{
-				res.add(default_score);//TODO normalize
-			}
+			res.add(pagerank_map.get(QryEval.getExternalDocid(docid)));
 		}
 		else
 		{
 			res.add(default_score);
 		}
-		
+		// flag is used to indicate whether the termvector is available
 		boolean flag = true;
 		TermVector tv = null;
 		try {
@@ -137,11 +85,9 @@ public class FeatureVector {
 		}
 		
 		//4, BM25, body
-		
 		if (mask[4] && flag)
 		{
-			double tmp = getBM25Score(docid, "body", tv);
-			res.add(tmp);
+			res.add(getBM25Score(docid, "body", tv));
 		}
 		else
 		{
@@ -151,8 +97,7 @@ public class FeatureVector {
 		// 5, indri, body
 		if (mask[5] && flag)
 		{
-			double tmp = getIndriScore(docid, "body", tv);
-			res.add(tmp);
+			res.add(getIndriScore(docid, "body", tv));
 		}
 		else
 		{
@@ -162,14 +107,13 @@ public class FeatureVector {
 		// 6, term overlap body
 		if (mask[6] && flag)
 		{
-			double tmp = getOverlapScore(tokens, tv);
-			res.add(tmp);
+			res.add(getOverlapScore(tokens, tv));
 		}
 		else
 		{
 			res.add(default_score);
 		}
-		
+		// reset tv and flag
 		tv = null;
 		flag = true;
 		try {
@@ -180,11 +124,9 @@ public class FeatureVector {
 		}
 		
 		//7, BM25, title
-		
 		if (mask[7] && flag)
 		{
-			double tmp = getBM25Score(docid, "title", tv);
-			res.add(tmp);
+			res.add(getBM25Score(docid, "title", tv));
 		}
 		else
 		{
@@ -194,8 +136,7 @@ public class FeatureVector {
 		// 8, indri, title
 		if (mask[8] && flag)
 		{
-			double tmp = getIndriScore(docid, "title", tv);
-			res.add(tmp);
+			res.add(getIndriScore(docid, "title", tv));
 		}
 		else
 		{
@@ -205,8 +146,7 @@ public class FeatureVector {
 		// 9, term overlap title
 		if (mask[9] && flag)
 		{
-			double tmp = getOverlapScore(tokens, tv);
-			res.add(tmp);
+			res.add(getOverlapScore(tokens, tv));
 		}
 		else
 		{
@@ -222,11 +162,9 @@ public class FeatureVector {
 			flag = false;
 		}
 		// 10, BM25, url
-		
 		if (mask[10] && flag)
 		{
-			double tmp = getBM25Score(docid, "url", tv);
-			res.add(tmp);
+			res.add(getBM25Score(docid, "url", tv));
 		}
 		else
 		{
@@ -236,8 +174,7 @@ public class FeatureVector {
 		// 11, indri, url
 		if (mask[11] && flag)
 		{
-			double tmp = getIndriScore(docid, "url", tv);
-			res.add(tmp);
+			res.add(getIndriScore(docid, "url", tv));
 		}
 		else
 		{
@@ -247,8 +184,7 @@ public class FeatureVector {
 		// 12, term overlap url
 		if (mask[12] && flag)
 		{
-			double tmp = getOverlapScore(tokens, tv);
-			res.add(tmp);
+			res.add(getOverlapScore(tokens, tv));
 		}
 		else
 		{
@@ -265,11 +201,9 @@ public class FeatureVector {
 		}		
 		
 		// 13, BM25, inlink
-		
 		if (mask[13] && flag)
 		{
-			double tmp = getBM25Score(docid, "inlink", tv);
-			res.add(tmp);
+			res.add(getBM25Score(docid, "inlink", tv));
 		}
 		else
 		{
@@ -279,8 +213,7 @@ public class FeatureVector {
 		// 14, indri, inlink
 		if (mask[14] && flag)
 		{
-			double tmp = getIndriScore(docid, "inlink", tv);
-			res.add(tmp);
+			res.add(getIndriScore(docid, "inlink", tv));
 		}
 		else
 		{
@@ -290,15 +223,14 @@ public class FeatureVector {
 		// 15, term overlap inlink
 		if (mask[15] && flag)
 		{
-			double tmp = getOverlapScore(tokens, tv);
-			res.add(tmp);
+			res.add(getOverlapScore(tokens, tv));
 		}
 		else
 		{
 			res.add(default_score);
 		}
 		// custom feature 1
-		if (mask[16])
+		if (mask[16])//TODO
 		{
 			res.add(1.0);
 		}
@@ -315,13 +247,18 @@ public class FeatureVector {
 		{
 			res.add(0.0);
 		}
+		// check the number of features
 		if (res.size() != FEATURES_NUM)
 		{
 			throw new Exception("feature number mismatch");
 		}
 		return res;
 	}
-	
+	/**
+	 * Normalize features
+	 * @param ls
+	 * @param idx
+	 */
 	public void normalizeFeatureVector(ArrayList<ArrayList<Double>> ls, int idx)
 	{
 		if (mask[idx]) // if the feature is not disabled
@@ -338,7 +275,7 @@ public class FeatureVector {
 				}
 			}
 			// now we have the max and min
-			if (max == min)//TODO for double, equals is not a good idea
+			if (max == min)
 			{
 				for (int i = 0; i < ls.size(); ++i)
 					ls.get(i).set(idx, 0.0d);
@@ -368,9 +305,9 @@ public class FeatureVector {
 		
 		for (int i = 0; i < FEATURES_NUM; ++i)
 		{
-			normalizeFeatureVector(ls, i);//TODO
+			normalizeFeatureVector(ls, i);
 		}
-		
+		// build the feature vector to be wrote in a file
 		for (int i = 0; i < ls.size(); ++i)
 		{
 			StringBuilder tmp = new StringBuilder();
