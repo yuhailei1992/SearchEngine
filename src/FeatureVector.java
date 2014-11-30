@@ -304,7 +304,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(default_score);
+			res.add(0.0);
 		}
 		// custom feature 2
 		if (mask[17])
@@ -313,7 +313,7 @@ public class FeatureVector {
 		}
 		else
 		{
-			res.add(default_score);
+			res.add(0.0);
 		}
 		if (res.size() != FEATURES_NUM)
 		{
