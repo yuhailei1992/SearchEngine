@@ -81,8 +81,8 @@ public class QryopSlScore extends QryopSl {
             int tf = result.invertedList.postings.get(j).tf;
             long length_d = QryEval.dls.getDocLength(invfield, docid);
             //calculate scores
-            double score = QryEval.Indri_lambda * ((double)tf + QryEval.Indri_mu * p_MLE) /
-            		((double)length_d + QryEval.Indri_mu) + (1 - QryEval.Indri_lambda) * p_MLE;
+            double score = ((RetrievalModelIndri)r).Indri_lambda * ((double)tf + ((RetrievalModelIndri)r).Indri_mu * p_MLE) /
+            		((double)length_d + ((RetrievalModelIndri)r).Indri_mu) + (1 - ((RetrievalModelIndri)r).Indri_lambda) * p_MLE;
             
             result.docScores.add(docid, score);
         }
@@ -96,8 +96,8 @@ public class QryopSlScore extends QryopSl {
     public QryResult evaluateBM25(RetrievalModel r) throws IOException {
     	
     	QryResult result = args.get(0).evaluate(r);
-    	System.out.println("parameters " + QryEval.BM25_k_1 + '\t' + 
-    			QryEval.BM25_b + '\t' + QryEval.BM25_k_3);
+    	System.out.println("parameters " + ((RetrievalModelBM25)r).BM25_k_1 + '\t' + 
+    			((RetrievalModelBM25)r).BM25_b + '\t' + ((RetrievalModelBM25)r).BM25_k_3);
     	//get the contants from index.
         String invfield = result.invertedList.field;
         int N = QryEval.READER.numDocs();
@@ -109,14 +109,14 @@ public class QryopSlScore extends QryopSl {
         
         //calculate scores
         for (int j = 0; j < df; ++j) {//calculates scores for every document
-            int docid = result.invertedList.getDocid(j);//haileiy
-        	int tf = result.invertedList.getTf(j);//haileiy
+            int docid = result.invertedList.getDocid(j);
+        	int tf = result.invertedList.getTf(j);
 
         	long doclen = QryEval.dls.getDocLength(invfield, docid);
             
             //calculate the tf_weight
-            double tf_weight = tf / ((double)tf + QryEval.BM25_k_1 * ((1 - QryEval.BM25_b) + 
-            		QryEval.BM25_b * doclen / avg_doclen));
+            double tf_weight = tf / ((double)tf + ((RetrievalModelBM25)r).BM25_k_1 * ((1 - ((RetrievalModelBM25)r).BM25_b) + 
+            		((RetrievalModelBM25)r).BM25_b * doclen / avg_doclen));
             
             double score = RSJ_weight * tf_weight;//didn't use user_weight
             result.docScores.add(docid, score);
@@ -174,8 +174,8 @@ public class QryopSlScore extends QryopSl {
         	long length_d = QryEval.dls.getDocLength(this.field, (int)docid);//should be long? haileiy
         	long length_C = QryEval.READER.getSumTotalTermFreq(this.field);
             double p_MLE = ((double)this.ctf) / ((double)length_C);
-        	double score = QryEval.Indri_lambda * (QryEval.Indri_mu * p_MLE) / 
-        			(length_d + QryEval.Indri_mu) + (1 - QryEval.Indri_lambda) * p_MLE;
+        	double score = ((RetrievalModelIndri)r).Indri_lambda * (((RetrievalModelIndri)r).Indri_mu * p_MLE) / 
+        			(length_d + ((RetrievalModelIndri)r).Indri_mu) + (1 - ((RetrievalModelIndri)r).Indri_lambda) * p_MLE;
         	return score;
         }
         return 0.0;

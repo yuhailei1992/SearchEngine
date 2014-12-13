@@ -229,23 +229,33 @@ public class FeatureVector {
 		{
 			res.add(default_score);
 		}
+		
+		tv = null;
+		flag = true;
+		try {
+			tv = new TermVector(docid, "body");
+		}
+		catch (Exception e) {
+			flag = false;
+		}
 		// custom feature 1
-		if (mask[16])//TODO
+		
+		if (mask[16] && flag)
 		{
-			res.add(1.0);
+			res.add(getVSMScore(docid, "body", tv));
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		// custom feature 2
-		if (mask[17])
+		if (mask[17] && flag)
 		{
-			res.add(1.0);
+			res.add(getTfIdf(docid, "body", tv));
 		}
 		else
 		{
-			res.add(0.0);
+			res.add(default_score);
 		}
 		// check the number of features
 		if (res.size() != FEATURES_NUM)
@@ -295,6 +305,12 @@ public class FeatureVector {
 						ls.get(i).set(idx, 0.0d);
 					}
 				}
+			}
+		}
+		else {
+			for (int i = 0; i < ls.size(); ++i)
+			{
+				ls.get(i).set(idx, 0.0d);
 			}
 		}
 	}
@@ -347,6 +363,83 @@ public class FeatureVector {
 		}
 	}
 	
+	public double getVSMScore (int docid, String field, TermVector tv) throws IOException
+	{
+		double score = 0.0;
+		double N = QryEval.READER.numDocs();
+		// for qtf
+		HashMap<String, Integer> token_map = new HashMap<String, Integer>();
+		for (int i = 0; i < tokens.length; ++i)
+		{
+			if (token_map.containsKey(tokens[i])){
+				token_map.put(tokens[i], token_map.get(tokens[i])+1);
+			}
+			else {
+				token_map.put(tokens[i], 1);
+			}
+		}
+		// for stem
+		HashMap<String, Integer> stem_map = new HashMap<String, Integer>();
+		for (int i = 1; i < tv.stemsLength(); ++i)
+		{
+			if (!stem_map.containsKey(tv.stemString(i)))
+				stem_map.put(tv.stemString(i), i);
+		}
+		// calculate score
+		double weight_1 = 0.0;
+		double weight_2 = 0.0;
+		double weight_3 = 0.0;
+		for (int i = 0; i < tokens.length; ++i)
+		{
+			String curr = tokens[i];
+			if (stem_map.containsKey(curr) && tv.stemDf(stem_map.get(curr)) != 0)
+			{
+				int idx = stem_map.get(curr);
+				double tf = (double)tv.stemFreq(idx);
+				double df = (double)tv.stemDf(idx);
+				double qtf = (double)token_map.get(curr);
+				weight_1 += (Math.log(tf) + 1) * ((Math.log(qtf) + 1) * Math.log(N / df));
+				weight_2 += Math.pow((Math.log(tf) + 1), 2);
+				weight_3 += Math.pow((Math.log(qtf) + 1) * Math.log(N / df) , 2);
+			}
+		}
+		score = weight_1 / Math.pow(weight_2, 2) / Math.pow(weight_3, 2);
+		return score;
+	}
+	
+	/**
+	 * 
+	 * @param docid
+	 * @param field
+	 * @param tv
+	 * @return
+	 * @throws IOException
+	 */
+	public double getTfIdf (int docid, String field, TermVector tv) throws IOException
+	{
+		double score = 0.0;
+		
+		int N = QryEval.READER.numDocs();
+		HashMap<String, Integer> stem_map = new HashMap<String, Integer>();
+		for (int i = 0; i < tv.stemsLength(); ++i)
+		{
+			stem_map.put(tv.stemString(i), i);
+		}
+		for (int i = 0; i < tokens.length; ++i)
+		{
+			String curr = tokens[i];
+			if (stem_map.containsKey(curr) && tv.stemDf(stem_map.get(curr)) != 0)
+			{
+				int idx = stem_map.get(curr);
+				double tf = (double)tv.stemFreq(idx);
+				
+				double idf = Math.log((double)N / (double)tv.stemDf(idx));
+				score += tf * idf;
+			}
+		}
+		
+		return score;
+	}
 	/**
 	 * @param docid
 	 * @param field
@@ -474,4 +567,6 @@ public class FeatureVector {
 		else
 			return 0.0;
 	}
+	
+	
 }
