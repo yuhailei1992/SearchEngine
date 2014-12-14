@@ -1,0 +1,170 @@
+fbMu=0
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	win
+102	lose
+149	win
+190	lose
+0.2000
+0.2250
+0.2600
+0.1369
+7/3
+ 
+fbMu=0
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	lose
+102	equal
+149	win
+190	win
+0.3300
+0.3850
+0.3733
+0.1829
+8/1
+ 
+fbMu=0
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	lose
+102	win
+149	win
+190	win
+0.3300
+0.3900
+0.3767
+0.1884
+9/1
+ 
+fbMu=0
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	lose
+102	win
+149	win
+190	win
+0.3300
+0.3900
+0.3767
+0.1884
+9/1
+ 
+fbMu=0
+10	win
+12	win
+26	win
+29	win
+33	win
+52	win
+71	lose
+102	equal
+149	win
+190	win
+0.3300
+0.3850
+0.3733
+0.1829
+8/1
+ 
+fbMu=0
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	lose
+102	win
+149	lose
+190	lose
+0.2800
+0.2700
+0.2733
+0.1325
+6/4
+ 
+fbMu=0
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	lose
+102	win
+149	lose
+190	lose
+0.2300
+0.2550
+0.2500
+0.1180
+6/4
+ 
+fbMu=0
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	lose
+102	win
+149	lose
+190	lose
+0.2800
+0.2700
+0.2733
+0.1325
+6/4
+ 
+fbMu=0
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	lose
+102	win
+149	lose
+190	lose
+0.3500
+0.3050
+0.3033
+0.1541
+6/4
+ 
+fbMu=0
+10	win
+12	win
+26	win
+29	lose
+33	win
+52	win
+71	lose
+102	win
+149	lose
+190	lose
+0.2500
+0.2150
+0.2533
+0.1314
+6/4
+ 
